@@ -3,7 +3,7 @@ import { Geist_Mono, Sora } from "next/font/google";
 import "./globals.css";
 
 const sora = Sora({
-  variable: "--font-geist-sans",
+  variable: "--font-sora",
   subsets: ["latin"],
 });
 
@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "codeSentinal",
+  title: "codeSentinel",
   description: "AI-powered code review for modern teams",
 };
 
@@ -25,9 +25,10 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${sora.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${sora.variable} ${geistMono.variable} dark h-full antialiased`}
+      suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col font-sans">{children}</body>
     </html>
   );
 }
