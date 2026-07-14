@@ -136,7 +136,7 @@ export async function getMonthlyActivity(){
         sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6 );
 
 
-        const generateSampleReview = () => {
+const generateSampleReview = () => {
             const sampleReview = [];
             const now = new Date();
 
@@ -153,8 +153,41 @@ export async function getMonthlyActivity(){
             }
 
             return sampleReview;
-        };
+ };
+
+const reviews = generateSampleReview();
+
+
+reviews.forEach((review) => {
+    const monthKey = monthNames[review.createdAt.getMonth()];
+    if(monthlyData[monthKey]){
+        monthlyData[monthKey].reviews += 1;
+    }
+})
+
+
+const {data : prs} = await octokit.rest.search.issuesAndPullRequests({
+    q : `author:${user.login} type:pr created : >${
+        sixMonthsAgo.toISOString().split("T")[0]
+    }`,
+    per_page : 100,
+});
+
+    prs.items.forEach((pr : any) => {
+        const date = new Date(pr.createdAt);
+        const monthkey = monthNames[date.getMonth()];
+        if(monthlyData[monthkey]){
+            monthlyData[monthkey].prs += 1;
+        }
+    });
+
+
+    return Object.keys(monthlyData).map((name)=> ({
+        name ,
+        ...monthlyData[name]
+    }))
+
     } catch (error){
 
     }
-}
+} 
