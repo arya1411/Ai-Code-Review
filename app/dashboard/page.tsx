@@ -5,74 +5,47 @@ import { FadeIn } from "@/components/ui/fade-in"
 import { Button } from "@/components/ui/button"
 import { GitPullRequest, ArrowRight, FolderGit2, GitCommit, Sparkles } from "lucide-react"
 import Link from "next/link"
-import { QueryProvider } from "@/components/providers/query-provider"
+import { getDashboardStats } from "@/module/dashboard"
 
-const MOCK_HEIGHTS = [
-  45, 60, 30, 80, 50, 75, 40, 90, 65, 35, 70, 85, 25, 60, 55, 30, 80, 45, 75, 50, 90, 40, 65, 35, 70, 85, 25, 60, 55, 30
-]
 
 export default async function DashboardPage() {
   // Get the authenticated user session
   const session = await requireAuth()
 
+  // Fetch dashboard data on the server
+  const stats = await getDashboardStats()
+
   // Dashboard statistics - these would typically come from the database/API
-  const stats = [
-    { 
-      label: "Total Repositories", 
-      value: "12", 
+  const stats1 = [
+    {
+      label: "Total Repositories",
+      value: stats.totalRepos.toString(),
       icon: FolderGit2,
       description: "Connected repositories"
     },
-    { 
-      label: "Total Commits", 
-      value: "1,248", 
+    {
+      label: "Total Commits",
+      value: stats.totalCommits.toLocaleString(),
       icon: GitCommit,
       description: "Commits analyzed"
     },
-    { 
-      label: "Pull Requests", 
-      value: "89", 
+    {
+      label: "Pull Requests",
+      value: stats.totalPrs.toString(),
       icon: GitPullRequest,
       description: "PRs reviewed"
     },
-    { 
-      label: "AI Reviews", 
-      value: "342", 
+    {
+      label: "AI Reviews",
+      value: "342",
       icon: Sparkles,
       description: "AI-generated reviews"
     },
   ]
 
-  // Recent activity data - would typically come from the database/API
-  const recentActivity = [
-    {
-      id: 1,
-      type: "review",
-      repository: "acme/frontend",
-      pr: "#142 - Add user authentication",
-      status: "completed",
-      time: "2 hours ago"
-    },
-    {
-      id: 2,
-      type: "review",
-      repository: "acme/backend",
-      pr: "#89 - Fix API rate limiting",
-      status: "completed",
-      time: "5 hours ago"
-    },
-    {
-      id: 3,
-      type: "review",
-      repository: "acme/docs",
-      pr: "#23 - Update API documentation",
-      status: "in_progress",
-      time: "1 day ago"
-    },
-  ]
+  const recentActivity = stats.recentActivity
 
   return (
-    <QueryProvider>
     <AppBackground>
       <DashboardShell user={session.user}>
         <div className="mx-auto max-w-6xl px-6 py-10 md:px-10 md:py-14">
@@ -95,11 +68,11 @@ export default async function DashboardPage() {
                 Statistics
               </h2>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {stats.map((stat) => {
+                {stats1.map((stat) => {
                   const Icon = stat.icon
                   return (
-                    <div 
-                      key={stat.label} 
+                    <div
+                      key={stat.label}
                       className="rounded-lg border border-neutral-900 bg-neutral-950/50 p-6 hover:bg-neutral-950/70 transition-colors"
                     >
                       <div className="flex items-start justify-between">
@@ -135,8 +108,8 @@ export default async function DashboardPage() {
                 {/* Placeholder for contribution graph - this would be a real chart component */}
                 <div className="flex items-center justify-between h-40">
                   <div className="flex items-end gap-1 h-full w-full">
-                    {/* Simulated contribution bars */}
-                    {MOCK_HEIGHTS.map((height, i) => {
+                    {/* Contribution activity bars */}
+                    {stats.contributionHeights.map((height, i) => {
                       return (
                         <div
                           key={i}
@@ -165,7 +138,7 @@ export default async function DashboardPage() {
               {recentActivity.length > 0 ? (
                 <div className="rounded-lg border border-neutral-900 bg-neutral-950/50 divide-y divide-neutral-900">
                   {recentActivity.map((activity) => (
-                    <div 
+                    <div
                       key={activity.id}
                       className="flex items-center justify-between p-4 hover:bg-neutral-900/30 transition-colors"
                     >
@@ -183,11 +156,10 @@ export default async function DashboardPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-4">
-                        <span className={`text-xs font-medium ${
-                          activity.status === 'completed' 
-                            ? 'text-green-400' 
+                        <span className={`text-xs font-medium ${activity.status === 'completed'
+                            ? 'text-green-400'
                             : 'text-amber-400'
-                        }`}>
+                          }`}>
                           {activity.status === 'completed' ? 'Completed' : 'In Progress'}
                         </span>
                         <span className="text-xs text-neutral-500">
@@ -208,9 +180,9 @@ export default async function DashboardPage() {
                     <p className="mt-2 text-sm text-neutral-400 leading-relaxed">
                       Connect your GitHub repository to get started with automated AI reviews.
                     </p>
-                    <Button 
+                    <Button
                       render={<Link href="/repositories" />}
-                      size="sm" 
+                      size="sm"
                       className="mt-6 gap-1.5 bg-white text-black hover:bg-neutral-200 transition-colors"
                     >
                       Connect repository
@@ -224,6 +196,5 @@ export default async function DashboardPage() {
         </div>
       </DashboardShell>
     </AppBackground>
-    </QueryProvider>
   )
 }

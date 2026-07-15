@@ -1,3 +1,5 @@
+"use server"
+
 import {Octokit} from "octokit"
 import { auth } from "@/lib/auth"
 import prisma from "@/lib/db"
@@ -30,7 +32,27 @@ export const getGithubToken = async() => {
 
 
 
-export async function fetchUserContribution(token:string , username:string){
+interface ContributionData {
+    user: {
+        contributionsCollection: {
+            contributionCalendar: {
+                totalContributions: number;
+                weeks: {
+                    contributionDays: {
+                        contributionCount: number;
+                        date: string;
+                        color: string;
+                    }[];
+                }[];
+            };
+        };
+    };
+}
+
+export async function fetchUserContribution(
+    token: string,
+    username: string
+): Promise<ContributionData["user"]["contributionsCollection"]["contributionCalendar"] | undefined> {
     const octokit = new Octokit({auth:token});
 
     const query = `
@@ -44,23 +66,8 @@ export async function fetchUserContribution(token:string , username:string){
     contributionCount date color}}}}}}
     `
 
-    interface contributindata {
-        user:{
-            contributionsCollection :{
-                contributionCalendar :{
-                    totalContributions : number ,
-                    weeks :{
-                        contributionDays :{
-                            contributionCount : number , date :string 
-                            | Date , color : string
-                        }[]
-                    }[]
-                }
-            }
-        }
-    }
     try {
-        const response:contributindata = await octokit.graphql(query , {
+        const response: ContributionData = await octokit.graphql(query, {
             username
         })
 
@@ -121,8 +128,8 @@ export async function getMonthlyActivity(){
             monthlyData[monthKey]  = {commits : 0 , prs : 0 , reviews : 0}; 
         }
 
-        calender.weeks.forEach((week:any) => {
-            week.contributindata.forEach((day : any) => {
+        calender.weeks.forEach((week) => {
+            week.contributionDays.forEach((day) => {
                 const date = new Date(day.date);
                 const monthKey = monthNames[date.getMonth()];
                 if(monthlyData[monthKey]){
@@ -173,8 +180,8 @@ const {data : prs} = await octokit.rest.search.issuesAndPullRequests({
     per_page : 100,
 });
 
-    prs.items.forEach((pr : any) => {
-        const date = new Date(pr.createdAt);
+    prs.items.forEach((pr) => {
+        const date = new Date(pr.created_at);
         const monthkey = monthNames[date.getMonth()];
         if(monthlyData[monthkey]){
             monthlyData[monthkey].prs += 1;
@@ -187,7 +194,7 @@ const {data : prs} = await octokit.rest.search.issuesAndPullRequests({
         ...monthlyData[name]
     }))
 
-    } catch (error){
-
+    } catch {
+        return [];
     }
 } 
