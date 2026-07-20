@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist_Mono, Sora } from "next/font/google";
 import "./globals.css";
+import { Providers } from "@/components/providers/providers";
 
 const sora = Sora({
   variable: "--font-sora",
@@ -28,7 +29,9 @@ export default function RootLayout({
       className={`${sora.variable} ${geistMono.variable} dark h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col font-sans">{children}</body>
+      <body className="min-h-full flex flex-col font-sans">
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }

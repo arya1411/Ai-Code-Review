@@ -8,6 +8,54 @@ import { headers } from "next/headers"
 import { Octokit } from "octokit"
 import { formatDistanceToNow } from "date-fns"
 
+
+export async function getContributionStats(){
+    try
+    {
+        const session = await auth.api.getSession({
+            headers : await headers(),
+        })
+
+        if(!session?.user){
+            throw new Error("Unauthorized");
+        }
+
+        const token = await getGithubToken();
+
+
+        const octokit = new Octokit({auth : token});
+
+        const {data : user} = await octokit.rest.users.getAuthenticated();
+
+        const username = user.login;
+
+        const calender = await fetchUserContribution(token , username);
+
+        if(!calender){
+            return null;
+        }
+
+
+        const contributions = (calender?.weeks ?? []).flatMap((week: any) => 
+            week.contributionDays.map((day: any) => ({
+                date: day.date,
+                count: day.contributionCount,
+                level: day.contributionCount === 0 ? 0 : Math.min(4, Math.ceil(day.contributionCount / 3)),
+            }))
+        );
+
+        return {
+            contribution: contributions
+        };
+
+    } catch (error) {
+        console.error("Error Fetching Contribution Stats: ", error);
+        return { contribution: [] };
+    }
+}
+
+
+
 export async function getDashboardStats() {
     try {
         const session = await auth.api.getSession({
@@ -50,7 +98,7 @@ export async function getDashboardStats() {
         })
 
         // Fetch contribution counts for the last 30 days dynamically
-        const allDays = calender?.weeks.flatMap(w => w.contributionDays) || [];
+        const allDays = (calender?.weeks ?? []).flatMap(w => w.contributionDays);
         const last30Days = allDays.slice(-30);
         const maxCount = Math.max(...last30Days.map(d => d.contributionCount), 1);
         const contributionHeights = last30Days.length > 0
