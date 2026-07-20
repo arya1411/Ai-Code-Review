@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { GitPullRequest, ArrowRight, FolderGit2, GitCommit, Sparkles } from "lucide-react"
 import Link from "next/link"
 import { getDashboardStats } from "@/module/dashboard"
+import ContributionGraph from "@/module/dashboard/components/contribution-graph"
 
 
 export default async function DashboardPage() {
@@ -105,25 +106,7 @@ export default async function DashboardPage() {
                 Contribution Activity
               </h2>
               <div className="rounded-lg border border-neutral-900 bg-neutral-950/50 p-6">
-                {/* Placeholder for contribution graph - this would be a real chart component */}
-                <div className="flex items-center justify-between h-40">
-                  <div className="flex items-end gap-1 h-full w-full">
-                    {/* Contribution activity bars */}
-                    {stats.contributionHeights.map((height, i) => {
-                      return (
-                        <div
-                          key={i}
-                          className="flex-1 bg-neutral-800 hover:bg-neutral-700 transition-colors rounded-sm"
-                          style={{ height: `${height}%`, minHeight: '4px' }}
-                        />
-                      )
-                    })}
-                  </div>
-                </div>
-                <div className="mt-4 flex items-center justify-between text-xs text-neutral-500">
-                  <span>30 days ago</span>
-                  <span>Today</span>
-                </div>
+                <ContributionGraph />
               </div>
             </section>
           </FadeIn>

@@ -1,0 +1,57 @@
+"use client"
+import { ActivityCalendar } from "react-activity-calendar"
+import React from 'react'
+import { useTheme } from 'next-themes';
+import { useQuery } from "@tanstack/react-query";
+import { getContributionStats } from "..";
+
+const ContributionGraph = () => {
+  const { theme } = useTheme();
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['contribution-graph'],
+    queryFn: async () => await getContributionStats(),
+    staleTime: 1000 * 60 * 5,
+    refetchOnWindowFocus: false,
+  })
+
+  if (isLoading) {
+    return (
+      <div className="w-full flex flex-col items-center justify-center p-8">
+        <div className="animate-pulse text-muted-foreground">Loading Contribution Data .....</div>
+      </div>
+    )
+  }
+
+  if (!data || !data.contribution.length) {
+    return (
+      <div className="w-full flex flex-col items-center justify-center p-8">
+        <div className="text-muted-foreground">No Contribution Data Available</div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="w-full flex flex-col items-center gap-4 p-4">
+      <div className="text-sm text-muted-foreground">
+        <span className="font-semibold text-foreground">
+          Contribution in last Year
+        </span>
+      </div>
+
+      <div className="w-full overflow-x-auto">
+        <div className="flex justify-center min-w-max px-4">
+          <ActivityCalendar
+            data={data.contribution}
+            colorScheme={theme === "dark" ? "dark" : "light"}
+            blockSize={11}
+            blockMargin={4}
+            fontSize={14}
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default ContributionGraph
