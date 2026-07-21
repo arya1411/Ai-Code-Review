@@ -52,6 +52,7 @@ export const AnyNull = runtime.AnyNull
 
 export const ModelName = {
   User: 'User',
+  Repository: 'Repository',
   Session: 'Session',
   Account: 'Account',
   Verification: 'Verification'
@@ -84,6 +85,21 @@ export const UserScalarFieldEnum = {
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
+
+
+export const RepositoryScalarFieldEnum = {
+  id: 'id',
+  githubId: 'githubId',
+  name: 'name',
+  owner: 'owner',
+  fullName: 'fullName',
+  url: 'url',
+  userId: 'userId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type RepositoryScalarFieldEnum = (typeof RepositoryScalarFieldEnum)[keyof typeof RepositoryScalarFieldEnum]
 
 
 export const SessionScalarFieldEnum = {
