@@ -33,7 +33,7 @@ interface SidebarProps {
 const navItems = [
   { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
   { label: "Reviews", href: "/reviews", icon: GitPullRequest },
-  { label: "Repositories", href: "/repositories", icon: FolderGit2 },
+  { label: "Repositories", href: "/dashboard/repository", icon: FolderGit2 },
   { label: "Settings", href: "/settings", icon: Settings },
 ]
 
