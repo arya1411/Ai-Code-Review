@@ -5,7 +5,7 @@ import { FadeIn } from "@/components/ui/fade-in"
 import { Button } from "@/components/ui/button"
 import { FolderGit2, ArrowRight } from "lucide-react"
 
-export default async function RepositoriesPage() {
+export default async function Repositoriespage() {
   const session = await requireAuth()
 
   return (
