@@ -28,7 +28,7 @@ export function FadeIn({ children, className, delay = 0 }: FadeInProps) {
   return (
     <motion.div
       // Initial state: invisible and slightly below final position (6px)
-      initial={{ opacity: 0, y: 6 }}
+      initial={{ opacity: 1, y: 0 }}
       // Final state: fully visible at correct position
       animate={{ opacity: 1, y: 0 }}
       // Animation configuration: 0.35s duration with custom easing curve and optional delay
