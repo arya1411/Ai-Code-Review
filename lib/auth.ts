@@ -13,5 +13,6 @@ export const auth = betterAuth({
             clientSecret:process.env.GITHUB_CLIENT_SECRET,
             scope:["repo"]
         }
-    }
+    },
+    trustedOrigins: process.env.NODE_ENV === "development" ? ["https://severity-camping-sasquatch.ngrok-free.dev"] : undefined,
 });

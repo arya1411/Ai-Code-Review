@@ -215,4 +215,37 @@ const {data : prs} = await octokit.rest.search.issuesAndPullRequests({
     } catch {
         return [];
     }
-} 
+}
+
+
+export const createWebHook = async (owner : string , repo : string) => {
+    const token = await getGithubToken();
+    const octokit = new Octokit({auth : token});
+
+
+    const webhookurl = `${process.env.NEXT_PUBLIC_APP_BASE_URL}/api/webhooks/github`
+
+
+    const {data: hooks}  = await octokit.rest.repos.listWebhooks({
+        owner,
+        repo
+    })
+
+    const existingHook = hooks.find(hook => hook.config.url === webhookurl);
+
+    if(existingHook){
+        return existingHook
+    }
+
+    const {data} = await octokit.rest.repos.createWebhook({
+        owner,
+        repo,
+        config:{
+            url : webhookurl,
+            content_type : "json"
+        },
+        events:["pull_request"]
+    });
+
+    return data;
+}
