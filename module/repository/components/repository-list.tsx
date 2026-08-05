@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { FadeIn } from "@/components/ui/fade-in"
 import { ExternalLink, Star, Search, FolderGit2, Loader2, Check, Plus } from 'lucide-react'
 import { useRepositories } from '@/module/repository/hooks/use-repository'
+import { useConnectRepository } from '../hooks/use-connect-repository'
 
 interface Repository {
   id: number
@@ -23,6 +24,7 @@ interface Repository {
 
 export function RepositoryList() {
   const [searchQuery, setSearchQuery] = useState("")
+  const [localConnectingId, setLocalConnectingId] = useState<number | null>(null)
   const {
     data,
     isLoading,
@@ -32,15 +34,25 @@ export function RepositoryList() {
     isFetchingNextPage
   } = useRepositories()
 
-  // Flatten infinite query pages into a single array of repositories
+
+  const {mutate:connectRepo} = useConnectRepository()
+
   const allRepositories = (data?.pages.flatMap((page: any) => page) || []) as Repository[]
 
-  // Filter based on search query
   const filteredRepositories = allRepositories.filter((repo) =>
     repo.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     repo.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (repo.description && repo.description.toLowerCase().includes(searchQuery.toLowerCase()))
   )
+
+  const handleConnect = (repo : Repository) => {
+    setLocalConnectingId(repo.id)
+    connectRepo( {
+      owner: repo.full_name.split("/")[0],
+      repo : repo.name,
+      githubId : repo.id
+  })
+  }
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-10 md:px-10 md:py-14 space-y-8">
@@ -132,14 +144,21 @@ export function RepositoryList() {
                   <div className="flex items-center gap-2 shrink-0">
                     <Button
                       size="sm"
+                      onClick={() => handleConnect(repo)}
                       variant={repo.isConnected ? "outline" : "default"}
                       className={
                         repo.isConnected
                           ? "border-neutral-800 bg-neutral-900 text-neutral-300 hover:bg-neutral-800 hover:text-white"
                           : "bg-white text-black hover:bg-neutral-200 font-medium"
                       }
+                      disabled={localConnectingId === repo.id}
                     >
-                      {repo.isConnected ? (
+                      {localConnectingId === repo.id ? (
+                        <>
+                          <Loader2 className="size-3.5 mr-1 animate-spin" />
+                          Connecting
+                        </>
+                      ) : repo.isConnected ? (
                         <>
                           <Check className="size-3.5 mr-1" />
                           Connected
