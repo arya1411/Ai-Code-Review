@@ -130,7 +130,7 @@ export async function getMonthlyActivity(){
             "Apr",
             "May",
             "Jun",
-            "Julu",
+            "Jul",
             "Aug",
             "Sep",
             "Oct",
@@ -192,7 +192,7 @@ reviews.forEach((review) => {
 
 
 const {data : prs} = await octokit.rest.search.issuesAndPullRequests({
-    q : `author:${user.login} type:pr created : >${
+    q : `author:${user.login} type:pr created:>${
         sixMonthsAgo.toISOString().split("T")[0]
     }`,
     per_page : 100,
@@ -248,4 +248,38 @@ export const createWebHook = async (owner : string , repo : string) => {
     });
 
     return data;
+}
+
+
+export const deleteWebhook = async (owner : string , repo : string) => {
+    const token = await getGithubToken();
+    const octokit = new Octokit({auth: token});
+
+    const webhookUrl = `${process.env.NEXT_PUBLIC_APP_BASE_URL}/api/webhooks/github`;
+    try {
+        const {data : hooks} = await octokit.rest.repos.listWebhooks({
+            owner,
+            repo
+        });
+
+
+        const hooktoDelete = hooks.find(hook => hook.config.url === webhookUrl);
+
+        if(hooktoDelete){
+            await octokit.rest.repos.deleteWebhook({
+                owner,
+                repo,
+                hook_id : hooktoDelete.id
+            })
+
+            return true;
+        }
+
+        return false;
+    } catch(error){
+        console.error("error deleting webhook", error);
+        return false;
+
+    }
+
 }
