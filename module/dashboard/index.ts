@@ -36,13 +36,26 @@ export async function getContributionStats(){
         }
 
 
-        const contributions = (calender?.weeks ?? []).flatMap((week: any) => 
-            week.contributionDays.map((day: any) => ({
+        const contributions = (calender?.weeks ?? []).flatMap((week: { contributionDays: { date: string; contributionCount: number }[] }) => 
+            week.contributionDays.map((day) => ({
                 date: day.date,
                 count: day.contributionCount,
-                level: day.contributionCount === 0 ? 0 : Math.min(4, Math.ceil(day.contributionCount / 3)),
+                level: day.contributionCount === 0 ? 0 : Math.min(4, Math.ceil(day.contributionCount / 3)) as 0 | 1 | 2 | 3 | 4,
             }))
         );
+
+        // react-activity-calendar requires data sorted by date
+        contributions.sort((a, b) => a.date.localeCompare(b.date));
+
+        // Ensure first entry has count 0 (required by ActivityCalendar)
+        if (contributions.length > 0 && contributions[0].count !== 0) {
+            contributions.unshift({ date: contributions[0].date, count: 0, level: 0 });
+        }
+
+        // Ensure last entry has count 0 (required by ActivityCalendar)
+        if (contributions.length > 0 && contributions[contributions.length - 1].count !== 0) {
+            contributions.push({ date: contributions[contributions.length - 1].date, count: 0, level: 0 });
+        }
 
         return {
             contribution: contributions

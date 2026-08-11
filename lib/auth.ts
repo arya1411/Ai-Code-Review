@@ -14,5 +14,7 @@ export const auth = betterAuth({
             scope:["repo"]
         }
     },
-    trustedOrigins: process.env.NODE_ENV === "development" ? ["https://severity-camping-sasquatch.ngrok-free.dev"] : undefined,
+    trustedOrigins: process.env.BETTER_AUTH_TRUSTED_ORIGINS
+        ? process.env.BETTER_AUTH_TRUSTED_ORIGINS.split(",")
+        : [],
 });

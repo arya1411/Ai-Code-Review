@@ -3,9 +3,6 @@ import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import prisma from "@/lib/db"
 import { revalidatePath } from "next/cache"
-import { resolveVariant } from "motion/react"
-import { success } from "zod"
-import { userAgent } from "next/server"
 
 export async function getUserProfile(){
     try {
@@ -46,9 +43,13 @@ export async function updateUserProfile(data: { name?: string , email?: string})
             headers : await headers()
         })
 
+        if(!session?.user){
+            throw new Error("Unauthorized");
+        }
+
         const updateUser = await prisma.user.update({
             where :{
-                id: session?.user.id
+                id: session.user.id
             },
             data : {
                 name : data.name,
@@ -61,17 +62,16 @@ export async function updateUserProfile(data: { name?: string , email?: string})
             }
         });
 
-        revalidatePath("/dashboard/setting" , "page");
-
+        revalidatePath("/settings" , "page");
 
         return {
             success : true,
             user : updateUser
         }
 
-        
     } catch(error){
         console.error("Error Updating User profile" , error)
+        return { success: false, user: null }
     }  
 }
 
@@ -85,7 +85,6 @@ export async function getConnectedRepositories(){
             throw new Error("Unathorized");
         }
 
-
         const repositories = await prisma.repository.findMany({
             where:{userId:session.user.id},
                 select :{
@@ -93,12 +92,50 @@ export async function getConnectedRepositories(){
                     name : true,
                     fullName :true,
                     url : true,
+                    owner : true,
                     createdAt : true
                 }
             })
+        return repositories;
     } catch(error){
-        console.error("Error in auhtorizing the User");
+        console.error("Error in auhtorizing the User", error);
+        return [];
     }
+}
 
-    
+export async function disconnectRepository(repositoryId: string) {
+    try {
+        const session = await auth.api.getSession({
+            headers: await headers()
+        })
+
+        if (!session?.user) {
+            throw new Error("Unauthorized");
+        }
+
+        const repository = await prisma.repository.findFirst({
+            where: {
+                id: repositoryId,
+                userId: session.user.id
+            }
+        })
+
+        if (!repository) {
+            throw new Error("Repository not found or access denied");
+        }
+
+        const { deleteWebhook } = await import("@/module/github/lib/github");
+        await deleteWebhook(repository.owner, repository.name);
+
+        await prisma.repository.delete({
+            where: { id: repositoryId }
+        })
+
+        revalidatePath("/settings", "page");
+
+        return { success: true };
+    } catch (error) {
+        console.error("Error disconnecting repository:", error);
+        return { success: false };
+    }
 }

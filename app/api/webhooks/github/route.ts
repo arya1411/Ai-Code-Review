@@ -2,9 +2,10 @@ import { NextResponse , NextRequest } from "next/server";
 
 export async function POST(req : NextRequest){
     try {
+        // TODO: Use body to trigger AI review logic (e.g. on pull_request events)
         const body = await req.json();
         const event = req.headers.get("x-github-event");
-        console.log(`Recived Github Event ${event}`);
+        console.log(`Recived Github Event ${event}`, body?.action ?? "");
 
 
         if(event === "ping"){

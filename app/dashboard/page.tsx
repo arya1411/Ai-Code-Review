@@ -7,6 +7,7 @@ import { GitPullRequest, ArrowRight, FolderGit2, GitCommit, Sparkles } from "luc
 import Link from "next/link"
 import { getDashboardStats } from "@/module/dashboard"
 import ContributionGraph from "@/module/dashboard/components/contribution-graph"
+import MonthlyActivityChart from "@/module/dashboard/components/monthly-activity-chart"
 
 
 export default async function DashboardPage() {
@@ -107,6 +108,18 @@ export default async function DashboardPage() {
               </h2>
               <div className="rounded-lg border border-neutral-900 bg-neutral-950/50 p-6">
                 <ContributionGraph />
+              </div>
+            </section>
+          </FadeIn>
+
+          {/* Monthly Activity Section */}
+          <FadeIn delay={0.14}>
+            <section className="mt-10">
+              <h2 className="text-sm font-medium text-neutral-400 mb-4">
+                Monthly Activity
+              </h2>
+              <div className="rounded-lg border border-neutral-900 bg-neutral-950/50 p-6">
+                <MonthlyActivityChart />
               </div>
             </section>
           </FadeIn>
