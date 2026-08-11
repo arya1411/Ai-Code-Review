@@ -3,7 +3,6 @@
 import {useMutation , useQueryClient} from "@tanstack/react-query"
 import { connectRepository } from ".."
 import {toast} from 'sonner'
-import { number } from "zod"
 
 
 
@@ -15,7 +14,7 @@ export const useConnectRepository = () => {
             return await connectRepository(owner , repo , githubId);
         },
         onSuccess:() =>{
-            toast.success("Repository successfully Connected"),
+            toast.success("Repository successfully Connected");
             queryClient.invalidateQueries({queryKey:[
                 "repositories"
             ]})

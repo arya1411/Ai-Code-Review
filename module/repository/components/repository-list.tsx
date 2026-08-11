@@ -37,7 +37,7 @@ export function RepositoryList() {
 
   const {mutate:connectRepo} = useConnectRepository()
 
-  const allRepositories = (data?.pages.flatMap((page: any) => page) || []) as Repository[]
+  const allRepositories = (data?.pages.flatMap((page: unknown) => page) || []) as Repository[]
 
   const filteredRepositories = allRepositories.filter((repo) =>
     repo.name.toLowerCase().includes(searchQuery.toLowerCase()) ||

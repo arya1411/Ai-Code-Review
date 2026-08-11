@@ -108,11 +108,9 @@ export async function getMonthlyActivity(){
         const token = await getGithubToken();
         const octokit = new Octokit({auth : token});
 
-
         const {data : user} = await octokit.rest.users.getAuthenticated();
 
-        const calender = await fetchUserContribution(token  ,user.login)
-
+        const calender = await fetchUserContribution(token, user.login)
 
         if(!calender){
             return [];
@@ -122,28 +120,16 @@ export async function getMonthlyActivity(){
             [key : string] : {commits : number; prs: number ; reviews:number}
         } = {}
 
-
         const monthNames = [
-            "Jan",
-            "Feb",
-            "Mar",
-            "Apr",
-            "May",
-            "Jun",
-            "Jul",
-            "Aug",
-            "Sep",
-            "Oct",
-            "Nov",
-            "Dec",
+            "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+            "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
         ];
 
-
         const now = new Date();
-        for(let i =  5; i >= 0; i --){
-            const date = new Date(now.getFullYear() , now.getMonth() - i , 1);
-            const monthKey  = monthNames[date.getMonth()];
-            monthlyData[monthKey]  = {commits : 0 , prs : 0 , reviews : 0}; 
+        for(let i = 5; i >= 0; i--){
+            const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const monthKey = monthNames[date.getMonth()];
+            monthlyData[monthKey] = {commits: 0, prs: 0, reviews: 0};
         }
 
         calender.weeks.forEach((week) => {
@@ -156,61 +142,28 @@ export async function getMonthlyActivity(){
             })
         })
 
-
         const sixMonthsAgo = new Date();
-        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6 );
+        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
+        const {data : prs} = await octokit.rest.search.issuesAndPullRequests({
+            q : `author:${user.login} type:pr created:>${sixMonthsAgo.toISOString().split("T")[0]}`,
+            per_page : 100,
+        });
 
-const generateSampleReview = () => {
-            const sampleReview = [];
-            const now = new Date();
-
-
-            for(let i = 0; i < 45 ; i++){
-                const randomDaysAgo = Math.floor(Math.random() * 180);
-                const reviewDate = new Date (now);
-                reviewDate.setDate(reviewDate.getDate() - randomDaysAgo);
-
-
-                sampleReview.push({
-                    createdAt : reviewDate,
-                });
+        prs.items.forEach((pr) => {
+            const date = new Date(pr.created_at);
+            const monthKey = monthNames[date.getMonth()];
+            if(monthlyData[monthKey]){
+                monthlyData[monthKey].prs += 1;
+                // Count PRs as reviews (real data — no fake generation)
+                monthlyData[monthKey].reviews += 1;
             }
+        });
 
-            return sampleReview;
- };
-
-const reviews = generateSampleReview();
-
-
-reviews.forEach((review) => {
-    const monthKey = monthNames[review.createdAt.getMonth()];
-    if(monthlyData[monthKey]){
-        monthlyData[monthKey].reviews += 1;
-    }
-})
-
-
-const {data : prs} = await octokit.rest.search.issuesAndPullRequests({
-    q : `author:${user.login} type:pr created:>${
-        sixMonthsAgo.toISOString().split("T")[0]
-    }`,
-    per_page : 100,
-});
-
-    prs.items.forEach((pr) => {
-        const date = new Date(pr.created_at);
-        const monthkey = monthNames[date.getMonth()];
-        if(monthlyData[monthkey]){
-            monthlyData[monthkey].prs += 1;
-        }
-    });
-
-
-    return Object.keys(monthlyData).map((name)=> ({
-        name ,
-        ...monthlyData[name]
-    }))
+        return Object.keys(monthlyData).map((name) => ({
+            name,
+            ...monthlyData[name]
+        }))
 
     } catch {
         return [];

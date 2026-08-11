@@ -3,9 +3,7 @@
 import prisma from "@/lib/db"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
-import { Octokit } from "octokit"
 import { createWebHook, getRepositories } from "../github/lib/github"
-import { Webhook } from "lucide-react"
 
 export const fetchRepositories = async(page:number = 1 , perPage:number = 10) => {
     const session = await auth.api.getSession({
@@ -26,11 +24,11 @@ export const fetchRepositories = async(page:number = 1 , perPage:number = 10) =>
     });
 
 
-    const connectedRepoIds = new Set(dbRepos.map(repo => repo.githubId))
+    const connectedRepoIds = new Set(dbRepos.map(repo => Number(repo.githubId)))
 
-    return githubRepos.map((repo : any) => ({
+    return githubRepos.map((repo : Record<string, unknown> & { id: number | string }) => ({
         ...repo,
-        isConnected:connectedRepoIds.has(BigInt(repo.id))
+        isConnected:connectedRepoIds.has(Number(repo.id))
     }))
  
 }
@@ -45,19 +43,27 @@ export const connectRepository = async(owner : string , repo : string , githubId
         throw new Error("Unathorized");
     }
 
-    const webhook = await createWebHook(owner ,repo);
+    try {
+        const webhook = await createWebHook(owner, repo);
 
-    if(webhook){
+        if(!webhook){
+            throw new Error("Failed to create webhook for repository");
+        }
+
         await prisma.repository.create({
             data :{
                 githubId:BigInt(githubId),
                 name:repo,
                 owner,
-                fullName :`${owner} / ${repo}`,
+                fullName :`${owner}/${repo}`,
                 url : `https://github.com/${owner}/${repo}`,
                 userId : session.user.id
             }
         })
+
+        return webhook;
+    } catch(error) {
+        console.error("Error connecting repository:", error);
+        throw error;
     }
-    return webhook
 }
