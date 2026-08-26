@@ -236,3 +236,62 @@ export const deleteWebhook = async (owner : string , repo : string) => {
     }
 
 }
+
+export const getRepoFileContent = async (token: string, owner: string, repo: string) => {
+    const octokit = new Octokit({ auth: token });
+    try {
+        const { data: repoInfo } = await octokit.rest.repos.get({
+            owner,
+            repo,
+        });
+
+        const defaultBranch = repoInfo.default_branch;
+
+        const { data: treeData } = await octokit.rest.git.getTree({
+            owner,
+            repo,
+            tree_sha: defaultBranch,
+            recursive: "true",
+        });
+
+        const files: { path: string; content: string }[] = [];
+        const ignoredExtensions = [
+            ".png", ".jpg", ".jpeg", ".gif", ".ico", ".svg", ".zip", ".tar", ".gz",
+            ".mp4", ".mp3", ".wav", ".pdf", ".woff", ".woff2", ".ttf", ".eot",
+            ".exe", ".bin", ".lock", "-lock.json", ".map"
+        ];
+        const ignoredDirs = ["node_modules", ".git", ".next", "dist", "build"];
+
+        const filteredItems = treeData.tree.filter(item => {
+            if (item.type !== "blob" || !item.path) return false;
+            const isIgnored = ignoredDirs.some(dir => item.path!.startsWith(dir) || item.path!.includes(`/${dir}/`)) ||
+                              ignoredExtensions.some(ext => item.path!.endsWith(ext));
+            return !isIgnored;
+        }).slice(0, 100);
+
+        for (const item of filteredItems) {
+            try {
+                const { data } = await octokit.rest.repos.getContent({
+                    owner,
+                    repo,
+                    path: item.path!,
+                });
+
+                if (data && !Array.isArray(data) && "content" in data && typeof data.content === "string") {
+                    const decodedContent = Buffer.from(data.content, "base64").toString("utf-8");
+                    files.push({
+                        path: item.path!,
+                        content: decodedContent,
+                    });
+                }
+            } catch (err) {
+                console.error(`Error fetching file content for ${item.path}:`, err);
+            }
+        }
+
+        return files;
+    } catch (error) {
+        console.error("Error getting repository file content:", error);
+        return [];
+    }
+}
