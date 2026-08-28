@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Settings,
   FolderGit2,
+  MessageSquareCode,
 } from "lucide-react"
 import { Logo } from "@/components/brand/logo"
 import { Avatar } from "@/components/ui/avatar"
@@ -34,6 +35,7 @@ const navItems = [
   { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
   { label: "Reviews", href: "/reviews", icon: GitPullRequest },
   { label: "Repositories", href: "/dashboard/repository", icon: FolderGit2 },
+  { label: "Talk with Repo", href: "/dashboard/chat", icon: MessageSquareCode },
   { label: "Settings", href: "/settings", icon: Settings },
 ]
 
@@ -51,7 +53,10 @@ export function Sidebar({ user }: SidebarProps) {
       {/* Navigation Links */}
       <nav className="flex flex-1 flex-col gap-1 px-3 pt-6">
         {navItems.map((item) => {
-          const isActive = pathname === item.href
+          const isActive =
+            item.href === "/dashboard"
+              ? pathname === item.href
+              : pathname.startsWith(item.href)
           const Icon = item.icon
 
           return (

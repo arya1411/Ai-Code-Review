@@ -25,6 +25,12 @@ export function MarketingHeader({ isAuthenticated }: MarketingHeaderProps) {
           >
             How it works
           </a>
+          <Link
+            href="/docs"
+            className="text-sm font-medium text-neutral-400 transition-colors hover:text-white"
+          >
+            Docs
+          </Link>
         </nav>
 
         <div className="flex items-center gap-2">

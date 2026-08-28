@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Settings,
   FolderGit2,
+  MessageSquareCode,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -27,13 +28,17 @@ export function MobileNav() {
     { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
     { label: "Reviews", href: "/reviews", icon: GitPullRequest },
     { label: "Repositories", href: "/repositories", icon: FolderGit2 },
+    { label: "Talk", href: "/dashboard/chat", icon: MessageSquareCode },
     { label: "Settings", href: "/settings", icon: Settings },
   ]
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-50 flex items-center justify-around border-t border-neutral-900 bg-black px-2 py-2 md:hidden">
       {navItems.map((item) => {
-        const isActive = pathname === item.href
+        const isActive =
+          item.href === "/dashboard"
+            ? pathname === item.href
+            : pathname.startsWith(item.href)
         const Icon = item.icon
 
         return (

@@ -81,3 +81,41 @@ export const connectRepository = async(owner : string , repo : string , githubId
         throw error;
     }
 }
+
+
+/* ------------------------------------------------------------------ */
+/*  Get only the repos already connected (in DB) for this user         */
+/* ------------------------------------------------------------------ */
+
+export interface ConnectedRepo {
+    id: string
+    name: string
+    owner: string
+    fullName: string
+    url: string
+    createdAt: Date
+}
+
+export async function getConnectedRepositories(): Promise<ConnectedRepo[]> {
+    const session = await auth.api.getSession({
+        headers: await headers(),
+    })
+
+    if (!session?.user) throw new Error("Unauthorized")
+
+    const repos = await prisma.repository.findMany({
+        where: { userId: session.user.id },
+        orderBy: { createdAt: "desc" },
+        select: {
+            id: true,
+            name: true,
+            owner: true,
+            fullName: true,
+            url: true,
+            createdAt: true,
+        },
+    })
+
+    return repos
+}
+
