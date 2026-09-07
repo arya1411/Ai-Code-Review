@@ -47,14 +47,22 @@ export async function getContributionStats(){
         // react-activity-calendar requires data sorted by date
         contributions.sort((a, b) => a.date.localeCompare(b.date));
 
-        // Ensure first entry has count 0 (required by ActivityCalendar)
+        // Ensure first entry has count 0 (required by ActivityCalendar).
+        // Use the day BEFORE the first entry to avoid a duplicate date.
         if (contributions.length > 0 && contributions[0].count !== 0) {
-            contributions.unshift({ date: contributions[0].date, count: 0, level: 0 });
+            const firstDate = new Date(contributions[0].date);
+            firstDate.setDate(firstDate.getDate() - 1);
+            const prevDay = firstDate.toISOString().slice(0, 10);
+            contributions.unshift({ date: prevDay, count: 0, level: 0 });
         }
 
-        // Ensure last entry has count 0 (required by ActivityCalendar)
+        // Ensure last entry has count 0 (required by ActivityCalendar).
+        // Use the day AFTER the last entry to avoid a duplicate date.
         if (contributions.length > 0 && contributions[contributions.length - 1].count !== 0) {
-            contributions.push({ date: contributions[contributions.length - 1].date, count: 0, level: 0 });
+            const lastDate = new Date(contributions[contributions.length - 1].date);
+            lastDate.setDate(lastDate.getDate() + 1);
+            const nextDay = lastDate.toISOString().slice(0, 10);
+            contributions.push({ date: nextDay, count: 0, level: 0 });
         }
 
         return {
@@ -231,4 +239,4 @@ export async function getRecentCommits(limit = 8): Promise<RecentCommit[]> {
         console.error("Error fetching recent commits:", error)
         return []
     }
-}
+}

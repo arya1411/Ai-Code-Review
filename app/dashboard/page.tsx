@@ -6,9 +6,6 @@ import { Button } from "@/components/ui/button"
 import {
   GitPullRequest,
   ArrowRight,
-  FolderGit2,
-  GitCommit,
-  Sparkles,
   Settings,
   Zap,
   CheckCircle2,
@@ -146,11 +143,11 @@ export default async function DashboardPage() {
                   />
                 </div>
 
-                {/* Center — monthly chart */}
+                {/* Center — contribution graph */}
                 <div className="px-5 py-4">
-                  <PanelHeader title="Activity" />
-                  <div className="h-[280px]">
-                    <MonthlyActivityChart />
+                  <PanelHeader title="Contribution Activity" />
+                  <div className="h-[280px] flex items-center justify-center">
+                    <ContributionGraph />
                   </div>
                 </div>
 
@@ -229,10 +226,10 @@ export default async function DashboardPage() {
               {/* ── BOTTOM ROW: Contribution graph | Commits | Insights ── */}
               <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr_260px] divide-y lg:divide-y-0 lg:divide-x divide-neutral-900">
 
-                {/* Contribution graph */}
+                {/* Monthly Activity chart */}
                 <div className="px-5 py-4">
-                  <PanelHeader title="Contribution Activity" />
-                  <ContributionGraph />
+                  <PanelHeader title="Monthly Activity" />
+                  <MonthlyActivityChart />
                 </div>
 
                 {/* Latest commits 2×2 */}

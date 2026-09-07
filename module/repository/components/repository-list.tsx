@@ -35,7 +35,10 @@ export function RepositoryList() {
   } = useRepositories()
 
 
-  const {mutate:connectRepo} = useConnectRepository()
+  const {mutate:connectRepo} = useConnectRepository({
+    onSuccess: () => setLocalConnectingId(null),
+    onError: () => setLocalConnectingId(null),
+  })
 
   const allRepositories = (data?.pages.flatMap((page: unknown) => page) || []) as Repository[]
 

@@ -9,8 +9,6 @@ import {
   Shield,
   ArrowRight,
   Code2,
-  Boxes,
-  Network,
 } from "lucide-react"
 import { CodeBlock, Callout, Step, DocTable } from "@/components/docs/docs-primitives"
 import { FadeIn } from "@/components/ui/fade-in"
@@ -464,7 +462,7 @@ export const index = pinecone.index(process.env.PINECONE_INDEX!)`}
           <div className="mt-6">
             <Callout type="tip">
               Each repository gets its own Pinecone namespace (using the repo ID) so vectors never
-              cross-contaminate between different users' codebases.
+              cross-contaminate between different users&apos; codebases.
             </Callout>
           </div>
         </section>
@@ -512,7 +510,7 @@ export const index = pinecone.index(process.env.PINECONE_INDEX!)`}
 
           <div className="mt-6">
             <Callout type="note">
-              All database access goes through Prisma's type-safe client — there are no raw SQL
+              All database access goes through Prisma&apos;s type-safe client — there are no raw SQL
               queries in the codebase.
             </Callout>
           </div>

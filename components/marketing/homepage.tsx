@@ -14,7 +14,6 @@ import { MarketingHeader } from "@/components/marketing/marketing-header"
 import { AppBackground } from "@/components/layout/app-background"
 import { Button } from "@/components/ui/button"
 import { FadeIn } from "@/components/ui/fade-in"
-import { cn } from "@/lib/utils"
 
 interface HomepageProps {
   isAuthenticated: boolean
@@ -231,14 +230,6 @@ export function Homepage({ isAuthenticated }: HomepageProps) {
             {/* Left — hero copy */}
             <FadeIn>
               <div className="space-y-6">
-                {/* Announcement badge */}
-                <div className="inline-flex items-center gap-2 rounded-full border border-neutral-800 bg-neutral-900 px-3 py-1.5">
-                  <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="text-xs font-medium text-neutral-400">
-                    Now with RAG-powered codebase context
-                  </span>
-                </div>
-
                 <h1 className="text-4xl font-bold leading-[1.1] tracking-[-0.04em] text-white sm:text-5xl md:text-6xl">
                   Automate code reviews.
                   <br />

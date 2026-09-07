@@ -3,7 +3,7 @@
 import prisma from "@/lib/db"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
-import { createWebHook, getRepositories } from "../github/lib/github"
+import { createWebHook, deleteWebhook, getRepositories } from "../github/lib/github"
 import { inngest } from "@/inngest/client"
 
 export const fetchRepositories = async(page:number = 1 , perPage:number = 10) => {
@@ -51,29 +51,33 @@ export const connectRepository = async(owner : string , repo : string , githubId
             throw new Error("Failed to create webhook for repository");
         }
 
-        await prisma.repository.create({
-            data :{
-                githubId:BigInt(githubId),
-                name:repo,
-                owner,
-                fullName :`${owner}/${repo}`,
-                url : `https://github.com/${owner}/${repo}`,
-                userId : session.user.id
-            }
-        })
-
         try {
-            await inngest.send({
-                name : "repository.connected",
-                data : {
-                    owner ,
-                    repo,
-                    userId:session?.user.id
+            await prisma.repository.create({
+                data :{
+                    githubId:BigInt(githubId),
+                    name:repo,
+                    owner,
+                    fullName :`${owner}/${repo}`,
+                    url : `https://github.com/${owner}/${repo}`,
+                    userId : session.user.id
                 }
             })
-        } catch (error){
-            console.error("Failed to trigger Repository Indexing" ,error)
+        } catch (dbError) {
+            // DB write failed — roll back the webhook we just created on GitHub
+            await deleteWebhook(owner, repo).catch((e) =>
+                console.error("Webhook rollback failed:", e)
+            );
+            throw dbError;
         }
+
+        await inngest.send({
+            name : "repository.connected",
+            data : {
+                owner ,
+                repo,
+                userId: session.user.id
+            }
+        })
 
         return webhook;
     } catch(error) {
@@ -81,11 +85,6 @@ export const connectRepository = async(owner : string , repo : string , githubId
         throw error;
     }
 }
-
-
-/* ------------------------------------------------------------------ */
-/*  Get only the repos already connected (in DB) for this user         */
-/* ------------------------------------------------------------------ */
 
 export interface ConnectedRepo {
     id: string

@@ -55,10 +55,16 @@ export async function fetchUserContribution(
 ): Promise<ContributionData["user"]["contributionsCollection"]["contributionCalendar"] | undefined> {
     const octokit = new Octokit({auth:token});
 
+    // Calculate date range: Current year only (Jan 1 to today)
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const fromDate = `${currentYear}-01-01`;
+    const toDate = today.toISOString().split('T')[0];
+
     const query = `
-    query($username:String!){
+    query($username:String!, $from:DateTime!, $to:DateTime!){
     user(login:$username){
-    contributionsCollection{
+    contributionsCollection(from:$from, to:$to){
     contributionCalendar{
     totalContributions
     weeks{
@@ -68,7 +74,9 @@ export async function fetchUserContribution(
 
     try {
         const response: ContributionData = await octokit.graphql(query, {
-            username
+            username,
+            from: fromDate + "T00:00:00Z",
+            to: toDate + "T23:59:59Z"
         })
 
         return response.user.contributionsCollection.contributionCalendar

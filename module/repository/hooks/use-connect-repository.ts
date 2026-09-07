@@ -4,9 +4,12 @@ import {useMutation , useQueryClient} from "@tanstack/react-query"
 import { connectRepository } from ".."
 import {toast} from 'sonner'
 
+interface UseConnectRepositoryOptions {
+    onSuccess?: () => void
+    onError?: () => void
+}
 
-
-export const useConnectRepository = () => {
+export const useConnectRepository = (options?: UseConnectRepositoryOptions) => {
     const queryClient = useQueryClient()
 
     return useMutation({
@@ -18,10 +21,12 @@ export const useConnectRepository = () => {
             queryClient.invalidateQueries({queryKey:[
                 "repositories"
             ]})
+            options?.onSuccess?.()
         } , 
         onError : (error) => {
             toast.error("Failed to connect Repository")
             console.error(error);
+            options?.onError?.()
         },
         
     })
