@@ -958,7 +958,7 @@ erDiagram
 
 ## 12. Environment Variables
 
-| Variable | Value (Current) | Purpose |
+| Variable | Example | Purpose |
 |----------|----------------|---------|
 | DATABASE_URL | <redacted> | PostgreSQL connection |
 | BETTER_AUTH_SECRET | <redacted> | Better-Auth encryption secret |

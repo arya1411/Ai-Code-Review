@@ -32,7 +32,7 @@ model User {
 
 model Repository {
   id String @id @default(cuid())
-  githubId BigInt @unique
+  githubId BigInt
   name String
   owner String
   fullName String
@@ -43,6 +43,7 @@ model Repository {
   updatedAt DateTime @updatedAt
 
   @@index([userId])
+  @@unique([userId, githubId])
   @@map("repository")
 
   }

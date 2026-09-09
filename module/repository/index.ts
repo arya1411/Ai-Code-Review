@@ -45,14 +45,26 @@ export const connectRepository = async(owner : string , repo : string , githubId
     }
 
     try {
-        const webhook = await createWebHook(owner, repo);
+        const existingRepository = await prisma.repository.findFirst({
+            where: {
+                githubId: BigInt(githubId),
+                userId: session.user.id,
+            },
+        });
+
+        const webhook = await createWebHook(owner, repo, githubId);
 
         if(!webhook){
             throw new Error("Failed to create webhook for repository");
         }
 
+        if (existingRepository) {
+            return { webhook: webhook.hook, alreadyConnected: true };
+        }
+
+        let connectedRepository;
         try {
-            await prisma.repository.create({
+            connectedRepository = await prisma.repository.create({
                 data :{
                     githubId:BigInt(githubId),
                     name:repo,
@@ -64,22 +76,43 @@ export const connectRepository = async(owner : string , repo : string , githubId
             })
         } catch (dbError) {
             // DB write failed — roll back the webhook we just created on GitHub
-            await deleteWebhook(owner, repo).catch((e) =>
-                console.error("Webhook rollback failed:", e)
-            );
+            const repositoryReferences = await prisma.repository.count({
+                where: { githubId: BigInt(githubId) },
+            });
+
+            if (webhook.created && repositoryReferences === 0) {
+                await deleteWebhook(owner, repo).catch((e) =>
+                    console.error("Webhook rollback failed:", e)
+                );
+            }
             throw dbError;
         }
 
-        await inngest.send({
-            name : "repository.connected",
-            data : {
-                owner ,
-                repo,
-                userId: session.user.id
-            }
-        })
+        try {
+            await inngest.send({
+                name : "repository.connected",
+                data : {
+                    owner ,
+                    repo,
+                    userId: session.user.id
+                }
+            })
+        } catch (eventError) {
+            await prisma.repository.delete({ where: { id: connectedRepository.id } });
 
-        return webhook;
+            const repositoryReferences = await prisma.repository.count({
+                where: { githubId: BigInt(githubId) },
+            });
+            if (webhook.created && repositoryReferences === 0) {
+                await deleteWebhook(owner, repo).catch((e) =>
+                    console.error("Webhook rollback failed:", e)
+                );
+            }
+
+            throw eventError;
+        }
+
+        return { webhook: webhook.hook, alreadyConnected: false };
     } catch(error) {
         console.error("Error connecting repository:", error);
         throw error;

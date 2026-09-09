@@ -266,10 +266,11 @@ export type RepositoryOrderByWithRelationInput = {
 
 export type RepositoryWhereUniqueInput = Prisma.AtLeast<{
   id?: string
-  githubId?: bigint | number
+  userId_githubId?: Prisma.RepositoryUserIdGithubIdCompoundUniqueInput
   AND?: Prisma.RepositoryWhereInput | Prisma.RepositoryWhereInput[]
   OR?: Prisma.RepositoryWhereInput[]
   NOT?: Prisma.RepositoryWhereInput | Prisma.RepositoryWhereInput[]
+  githubId?: Prisma.BigIntFilter<"Repository"> | bigint | number
   name?: Prisma.StringFilter<"Repository"> | string
   owner?: Prisma.StringFilter<"Repository"> | string
   fullName?: Prisma.StringFilter<"Repository"> | string
@@ -278,7 +279,7 @@ export type RepositoryWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"Repository"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Repository"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
-}, "id" | "githubId">
+}, "id" | "userId_githubId">
 
 export type RepositoryOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
@@ -403,6 +404,11 @@ export type RepositoryListRelationFilter = {
 
 export type RepositoryOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
+}
+
+export type RepositoryUserIdGithubIdCompoundUniqueInput = {
+  userId: string
+  githubId: bigint | number
 }
 
 export type RepositoryCountOrderByAggregateInput = {

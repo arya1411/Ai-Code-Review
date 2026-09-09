@@ -124,8 +124,17 @@ export async function disconnectRepository(repositoryId: string) {
             throw new Error("Repository not found or access denied");
         }
 
-        const { deleteWebhook } = await import("@/module/github/lib/github");
-        await deleteWebhook(repository.owner, repository.name);
+        const otherConnections = await prisma.repository.count({
+            where: {
+                githubId: repository.githubId,
+                id: { not: repository.id },
+            },
+        });
+
+        if (otherConnections === 0) {
+            const { deleteWebhook } = await import("@/module/github/lib/github");
+            await deleteWebhook(repository.owner, repository.name);
+        }
 
         await prisma.repository.delete({
             where: { id: repositoryId }

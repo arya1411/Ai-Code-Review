@@ -49,6 +49,8 @@ export function RepositoryList() {
   )
 
   const handleConnect = (repo : Repository) => {
+    if (repo.isConnected) return
+
     setLocalConnectingId(repo.id)
     connectRepo( {
       owner: repo.full_name.split("/")[0],
@@ -154,7 +156,7 @@ export function RepositoryList() {
                           ? "border-neutral-800 bg-neutral-900 text-neutral-300 hover:bg-neutral-800 hover:text-white"
                           : "bg-white text-black hover:bg-neutral-200 font-medium"
                       }
-                      disabled={localConnectingId === repo.id}
+                      disabled={repo.isConnected || localConnectingId === repo.id}
                     >
                       {localConnectingId === repo.id ? (
                         <>

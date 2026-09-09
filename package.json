@@ -10,6 +10,7 @@
     "lint:fix": "eslint --fix",
     "typecheck": "tsc --noEmit",
     "inngest:dev": "inngest-cli dev -u http://127.0.0.1:3000/api/inngest",
+    "webhooks:reconcile": "tsx scripts/reconcile-webhooks.mts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",

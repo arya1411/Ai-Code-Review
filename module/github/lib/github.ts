@@ -179,13 +179,36 @@ export async function getMonthlyActivity(){
 }
 
 
-export const createWebHook = async (owner : string , repo : string) => {
+const getWebhookUrl = () => {
+    const baseUrl = process.env.APP_BASE_URL ?? process.env.NEXT_PUBLIC_APP_BASE_URL;
+
+    if (!baseUrl) {
+        throw new Error("APP_BASE_URL or NEXT_PUBLIC_APP_BASE_URL must be configured");
+    }
+
+    return `${baseUrl.replace(/\/$/, "")}/api/webhooks/github`;
+}
+
+const getWebhookSecret = () => {
+    const secret = process.env.GITHUB_WEBHOOK_SECRET;
+
+    if (!secret) {
+        throw new Error("GITHUB_WEBHOOK_SECRET must be configured");
+    }
+
+    return secret;
+}
+
+export const createWebHook = async (owner : string , repo : string, expectedGithubId?: number) => {
     const token = await getGithubToken();
     const octokit = new Octokit({auth : token});
+    const webhookurl = getWebhookUrl();
+    const webhookSecret = getWebhookSecret();
 
-
-    const webhookurl = `${process.env.NEXT_PUBLIC_APP_BASE_URL}/api/webhooks/github`
-
+    const { data: repository } = await octokit.rest.repos.get({ owner, repo });
+    if (expectedGithubId !== undefined && repository.id !== expectedGithubId) {
+        throw new Error("Repository identity does not match the selected GitHub repository");
+    }
 
     const {data: hooks}  = await octokit.rest.repos.listWebhooks({
         owner,
@@ -195,7 +218,20 @@ export const createWebHook = async (owner : string , repo : string) => {
     const existingHook = hooks.find(hook => hook.config.url === webhookurl);
 
     if(existingHook){
-        return existingHook
+        const { data } = await octokit.rest.repos.updateWebhook({
+            owner,
+            repo,
+            hook_id: existingHook.id,
+            active: true,
+            events: ["pull_request", "push"],
+            config: {
+                url: webhookurl,
+                content_type: "json",
+                secret: webhookSecret,
+            },
+        });
+
+        return { hook: data, created: false };
     }
 
     const {data} = await octokit.rest.repos.createWebhook({
@@ -203,12 +239,13 @@ export const createWebHook = async (owner : string , repo : string) => {
         repo,
         config:{
             url : webhookurl,
-            content_type : "json"
+            content_type : "json",
+            secret: webhookSecret,
         },
-        events:["pull_request"]
+        events:["pull_request", "push"]
     });
 
-    return data;
+    return { hook: data, created: true };
 }
 
 
@@ -216,32 +253,25 @@ export const deleteWebhook = async (owner : string , repo : string) => {
     const token = await getGithubToken();
     const octokit = new Octokit({auth: token});
 
-    const webhookUrl = `${process.env.NEXT_PUBLIC_APP_BASE_URL}/api/webhooks/github`;
-    try {
-        const {data : hooks} = await octokit.rest.repos.listWebhooks({
+    const webhookUrl = getWebhookUrl();
+    const {data : hooks} = await octokit.rest.repos.listWebhooks({
+        owner,
+        repo
+    });
+
+    const hooktoDelete = hooks.find(hook => hook.config.url === webhookUrl);
+
+    if(hooktoDelete){
+        await octokit.rest.repos.deleteWebhook({
             owner,
-            repo
-        });
+            repo,
+            hook_id : hooktoDelete.id
+        })
 
-
-        const hooktoDelete = hooks.find(hook => hook.config.url === webhookUrl);
-
-        if(hooktoDelete){
-            await octokit.rest.repos.deleteWebhook({
-                owner,
-                repo,
-                hook_id : hooktoDelete.id
-            })
-
-            return true;
-        }
-
-        return false;
-    } catch(error){
-        console.error("error deleting webhook", error);
-        return false;
-
+        return true;
     }
+
+    return false;
 
 }
 
