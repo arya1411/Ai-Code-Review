@@ -1,4 +1,4 @@
-import { embed } from "ai";
+import { embed, embedMany } from "ai";
 import { google, type GoogleEmbeddingModelOptions } from "@ai-sdk/google";
 import prisma from "@/lib/db";
 import { pineconeIndex } from "@/lib/pinecone";
@@ -7,6 +7,7 @@ import { env } from "@/lib/env";
 const CHUNK_SIZE = 6_000;
 const CHUNK_OVERLAP = 500;
 const MAX_FILE_CHARACTERS = 36_000;
+let pineconeEnabled = pineconeIndex !== null;
 
 export interface CodeChunk {
     path: string;
@@ -63,7 +64,7 @@ export function selectRelevantCodeChunks(
 }
 
 async function listVectorIds(prefix: string): Promise<string[]> {
-    if (!pineconeIndex) return [];
+    if (!pineconeIndex || !pineconeEnabled) return [];
 
     const ids: string[] = [];
     let paginationToken: string | undefined;
@@ -86,7 +87,7 @@ export async function deleteCodeBaseIndex(repoId: string) {
         where: { repoKey: repoId },
     });
 
-    if (pineconeIndex) {
+    if (pineconeIndex && pineconeEnabled) {
         try {
             const ids = [
                 ...(await listVectorIds(`${repoId}:file:`)),
@@ -97,6 +98,7 @@ export async function deleteCodeBaseIndex(repoId: string) {
                 await pineconeIndex.deleteMany({ ids: ids.slice(i, i + 100) });
             }
         } catch (error) {
+            pineconeEnabled = false;
             console.warn("Pinecone cleanup failed; PostgreSQL chunks were removed", error);
         }
     }
@@ -122,45 +124,77 @@ export async function generateEmbedding(
     return embedding;
 }
 
-export async function indexCodeBase(repoId: string, files: { path: string; content: string }[]) {
+async function generateEmbeddings(
+    values: string[],
+    taskType: GoogleEmbeddingModelOptions["taskType"],
+) {
+    const { embeddings } = await embedMany({
+        model: google.embedding("gemini-embedding-001"),
+        values,
+        maxParallelCalls: 3,
+        maxRetries: 3,
+        providerOptions: {
+            google: {
+                outputDimensionality: env.EMBEDDING_DIMENSIONS,
+                taskType,
+            } satisfies GoogleEmbeddingModelOptions,
+        },
+    });
+
+    return embeddings;
+}
+
+export async function indexCodeBase(
+    repositoryId: string,
+    repoKey: string,
+    files: { path: string; content: string }[],
+) {
     const chunks = createCodeChunks(files);
     if (chunks.length === 0) {
         throw new Error("No non-empty source files were available for indexing");
+    }
+
+    const embeddings = await generateEmbeddings(
+        chunks.map((chunk) => chunk.content),
+        "RETRIEVAL_DOCUMENT",
+    );
+    if (embeddings.length !== chunks.length) {
+        throw new Error("Embedding provider returned an incomplete batch");
     }
 
     const records: Array<{
         id: string;
         values: number[];
         metadata: { repoId: string; path: string; chunkIndex: number; content: string };
-    }> = [];
-
-    for (const chunk of chunks) {
+    }> = chunks.map((chunk, index) => {
         const pathId = Buffer.from(chunk.path).toString("base64url");
-        const id = `${repoId}:file:${pathId}:${chunk.chunkIndex}`;
-        const embedding = await generateEmbedding(chunk.content, "RETRIEVAL_DOCUMENT");
-
-        records.push({
+        const id = `${repoKey}:file:${pathId}:${chunk.chunkIndex}`;
+        return {
             id,
-            values: embedding,
+            values: embeddings[index],
             metadata: {
-                repoId,
+                repoId: repoKey,
                 path: chunk.path,
                 chunkIndex: chunk.chunkIndex,
                 content: chunk.content,
             },
-        });
-    }
-
-    const previousChunks = await prisma.repositoryCodeChunk.count({
-        where: { repoKey: repoId },
+        };
     });
 
+    const previousChunks = await prisma.repositoryCodeChunk.findMany({
+        where: { repoKey },
+        select: { id: true },
+    });
+    const nextIds = new Set(records.map((record) => record.id));
+    const removedPostgresChunks = previousChunks.filter((chunk) => !nextIds.has(chunk.id)).length;
+
     await prisma.$transaction([
-        prisma.repositoryCodeChunk.deleteMany({ where: { repoKey: repoId } }),
+        prisma.repositoryCodeChunk.deleteMany({ where: { repoKey } }),
         prisma.repositoryCodeChunk.createMany({
             data: records.map((record) => ({
                 id: record.id,
-                repoKey: repoId,
+                repositoryId,
+                repoKey,
                 path: record.metadata.path,
                 chunkIndex: record.metadata.chunkIndex,
                 content: record.metadata.content,
@@ -170,31 +204,31 @@ export async function indexCodeBase(repoId: string, files: { path: string; conte
     ]);
 
     let removedPineconeChunks = 0;
-    if (pineconeIndex) {
+    if (pineconeIndex && pineconeEnabled) {
         try {
             const currentIds = new Set([
-                ...(await listVectorIds(`${repoId}:file:`)),
-                ...(await listVectorIds(`${repoId}-`)),
+                ...(await listVectorIds(`${repoKey}:file:`)),
+                ...(await listVectorIds(`${repoKey}-`)),
             ]);
             const batchSize = 100;
             for (let i = 0; i < records.length; i += batchSize) {
                 await pineconeIndex.upsert({ records: records.slice(i, i + batchSize) });
             }
 
-            const nextIds = new Set(records.map((record) => record.id));
             const staleIds = [...currentIds].filter((id) => !nextIds.has(id));
             removedPineconeChunks = staleIds.length;
             for (let i = 0; i < staleIds.length; i += 100) {
                 await pineconeIndex.deleteMany({ ids: staleIds.slice(i, i + 100) });
             }
         } catch (error) {
+            pineconeEnabled = false;
             console.warn("Pinecone indexing failed; PostgreSQL index is ready", error);
         }
     }
 
     return {
         indexedChunks: records.length,
-        removedChunks: Math.max(previousChunks - records.length, removedPineconeChunks),
+        removedChunks: Math.max(removedPostgresChunks, removedPineconeChunks),
     };
 }
 
@@ -237,10 +271,31 @@ export async function retrieveContextWithSources(
     repoId: string,
     topK: number = 6,
 ): Promise<RetrievedCodeContext[]> {
-    const embedding = await generateEmbedding(query, "RETRIEVAL_QUERY");
+    const chunks = await prisma.repositoryCodeChunk.findMany({
+        where: { repoKey: repoId },
+        select: { path: true, content: true, embedding: true },
+    });
 
-    if (pineconeIndex) {
+    if (chunks.length > 0) {
+        const embedding = await generateEmbedding(query, "RETRIEVAL_QUERY");
+        return chunks
+            .flatMap((chunk) => {
+                const storedEmbedding = parseStoredEmbedding(chunk.embedding);
+                return storedEmbedding
+                    ? [{
+                        path: chunk.path,
+                        content: chunk.content,
+                        score: cosineSimilarity(embedding, storedEmbedding),
+                    }]
+                    : [];
+            })
+            .sort((left, right) => right.score - left.score)
+            .slice(0, topK);
+    }
+
+    if (pineconeIndex && pineconeEnabled) {
         try {
+            const embedding = await generateEmbedding(query, "RETRIEVAL_QUERY");
             const result = await pineconeIndex.query({
                 vector: embedding,
                 filter: { repoId },
@@ -261,28 +316,12 @@ export async function retrieveContextWithSources(
 
             if (matches.length > 0) return matches;
         } catch (error) {
-            console.warn("Pinecone retrieval failed; using PostgreSQL vectors", error);
+            pineconeEnabled = false;
+            console.warn("Pinecone retrieval failed; no legacy vector context is available", error);
         }
     }
 
-    const chunks = await prisma.repositoryCodeChunk.findMany({
-        where: { repoKey: repoId },
-        select: { path: true, content: true, embedding: true },
-    });
-
-    return chunks
-        .flatMap((chunk) => {
-            const storedEmbedding = parseStoredEmbedding(chunk.embedding);
-            return storedEmbedding
-                ? [{
-                    path: chunk.path,
-                    content: chunk.content,
-                    score: cosineSimilarity(embedding, storedEmbedding),
-                }]
-                : [];
-        })
-        .sort((left, right) => right.score - left.score)
-        .slice(0, topK);
+    return [];
 }
 
 export const retruceContext = retrieveContext;

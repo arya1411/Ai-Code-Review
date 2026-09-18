@@ -5,7 +5,7 @@ import { auth } from "@/lib/auth"
 import prisma from "@/lib/db"
 import { headers } from "next/headers"
 import { env } from "@/lib/env"
-import { isIndexableRepositoryFile } from "@/module/github/lib/repository-files"
+import { isIndexableRepositoryFile, isProbablyBinaryContent } from "@/module/github/lib/repository-files"
 
 
 
@@ -277,6 +277,7 @@ export const getRepoSnapshot = async (
     token: string,
     owner: string,
     repo: string,
+    requestedCommitSha?: string,
 ): Promise<RepositorySnapshot> => {
     const octokit = new Octokit({ auth: token });
     try {
@@ -287,15 +288,16 @@ export const getRepoSnapshot = async (
 
         const defaultBranch = repoInfo.default_branch;
 
-        const [{ data: branch }, { data: treeData }] = await Promise.all([
-            octokit.rest.repos.getBranch({ owner, repo, branch: defaultBranch }),
-            octokit.rest.git.getTree({
+        const commitSha = requestedCommitSha ?? (
+            await octokit.rest.repos.getBranch({ owner, repo, branch: defaultBranch })
+        ).data.commit.sha;
+
+        const { data: treeData } = await octokit.rest.git.getTree({
             owner,
             repo,
-            tree_sha: defaultBranch,
+            tree_sha: commitSha,
             recursive: "true",
-            }),
-        ]);
+        });
 
         const files: { path: string; content: string }[] = [];
         const filteredItems = treeData.tree
@@ -310,22 +312,28 @@ export const getRepoSnapshot = async (
                     repo,
                     file_sha: item.sha!,
                 });
+                const content = Buffer.from(data.content, "base64");
+                if (isProbablyBinaryContent(content)) return null;
+
                 return {
                     path: item.path!,
-                    content: Buffer.from(data.content, "base64").toString("utf-8"),
+                    content: content.toString("utf-8"),
                 };
             }));
 
             for (const result of results) {
-                if (result.status === "fulfilled") files.push(result.value);
-                else console.error("Error fetching repository file:", result.reason);
+                if (result.status === "fulfilled") {
+                    if (result.value) files.push(result.value);
+                } else {
+                    console.error("Error fetching repository file:", result.reason);
+                }
             }
         }
 
-        return { files, commitSha: branch.commit.sha };
+        return { files, commitSha };
     } catch (error) {
         console.error("Error getting repository file content:", error);
-        return { files: [], commitSha: null };
+        throw error;
     }
 }
 

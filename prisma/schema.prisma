@@ -42,6 +42,7 @@ model Repository {
   indexedCommitSha String?
   indexError       String?
   reviews          Review[]
+  codeChunks       RepositoryCodeChunk[]
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
 
@@ -96,6 +97,8 @@ model Finding {
 
 model RepositoryCodeChunk {
   id         String   @id
+  repositoryId String
+  repository Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
   repoKey    String
   path       String
   chunkIndex Int
@@ -105,6 +108,7 @@ model RepositoryCodeChunk {
   updatedAt  DateTime @updatedAt
 
   @@index([repoKey])
+  @@index([repositoryId])
   @@map("repository_code_chunk")
 }
 

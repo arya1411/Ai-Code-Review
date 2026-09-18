@@ -10,8 +10,8 @@ const pineconeApiKey = process.env.PINECONE_DB_API_KEY
 const pineconeIndexName = process.env.PINECONE_INDEX ?? "codesentinal-vector-embeddings"
 const embeddingDimensions = Number(process.env.EMBEDDING_DIMENSIONS ?? 768)
 
-if (!googleApiKey || !pineconeApiKey) {
-  throw new Error("Google and Pinecone API keys are required")
+if (!googleApiKey) {
+  throw new Error("A Google Generative AI API key is required")
 }
 
 const results: Record<string, unknown> = {}
@@ -54,18 +54,22 @@ try {
   errors.push(`Google generation: ${error instanceof Error ? error.message : "unknown error"}`)
 }
 
-try {
-  const pinecone = new Pinecone({ apiKey: pineconeApiKey })
-  const stats = await pinecone.index(pineconeIndexName).describeIndexStats()
-  results.pineconeIndex = pineconeIndexName
-  results.pineconeDimensions = stats.dimension
-  results.pineconeVectorCount = stats.totalRecordCount ?? 0
+if (pineconeApiKey) {
+  try {
+    const pinecone = new Pinecone({ apiKey: pineconeApiKey })
+    const stats = await pinecone.index(pineconeIndexName).describeIndexStats()
+    results.pineconeIndex = pineconeIndexName
+    results.pineconeDimensions = stats.dimension
+    results.pineconeVectorCount = stats.totalRecordCount ?? 0
 
-  if (stats.dimension !== embeddingDimensions) {
-    errors.push(`Pinecone dimension ${stats.dimension} does not match EMBEDDING_DIMENSIONS ${embeddingDimensions}`)
+    if (stats.dimension !== embeddingDimensions) {
+      errors.push(`Pinecone dimension ${stats.dimension} does not match EMBEDDING_DIMENSIONS ${embeddingDimensions}`)
+    }
+  } catch (error) {
+    errors.push(`Pinecone: ${error instanceof Error ? error.message : "unknown error"}`)
   }
-} catch (error) {
-  errors.push(`Pinecone: ${error instanceof Error ? error.message : "unknown error"}`)
+} else {
+  results.pinecone = "not configured (optional)"
 }
 
 console.log(JSON.stringify({ results, errors }, null, 2))

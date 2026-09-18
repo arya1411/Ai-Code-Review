@@ -10,6 +10,11 @@ const prisma = prismaModule.default ?? (prismaImport as unknown as PrismaClientI
 const smokeRepoKey = `smoke:${Date.now()}`
 
 async function run() {
+  const repository = await prisma.repository.findFirst({ select: { id: true } })
+  if (!repository) {
+    throw new Error("A repository row is required for the cascade-cleanup smoke test")
+  }
+
   const sampleFiles = [
     {
       path: "src/auth/session.ts",
@@ -25,7 +30,7 @@ async function run() {
     },
   ]
 
-  const indexed = await indexCodeBase(smokeRepoKey, sampleFiles)
+  const indexed = await indexCodeBase(repository.id, smokeRepoKey, sampleFiles)
   const results = await retrieveContextWithSources(
     "Where is user session authentication validated?",
     smokeRepoKey,

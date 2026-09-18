@@ -2,9 +2,9 @@ import test from "node:test"
 import assert from "node:assert/strict"
 import { createHmac } from "node:crypto"
 import { parseServerEnv } from "../lib/env"
-import { verifyGitHubWebhookSignature } from "../lib/github-webhook"
+import { isDefaultBranchPush, verifyGitHubWebhookSignature } from "../lib/github-webhook"
 import { cosineSimilarity, createCodeChunks, selectRelevantCodeChunks } from "../module/ai/lib/rag"
-import { isIndexableRepositoryFile } from "../module/github/lib/repository-files"
+import { isIndexableRepositoryFile, isProbablyBinaryContent } from "../module/github/lib/repository-files"
 import { parseReviewModelOutput } from "../module/ai/lib/review-output"
 import { formatGitHubReviewComment } from "../module/ai/lib/github-review-comment"
 
@@ -39,6 +39,13 @@ test("GitHub webhook signatures are verified with SHA-256", () => {
   assert.equal(verifyGitHubWebhookSignature(body, "sha256=invalid", secret), false)
 })
 
+test("only non-deleted default-branch pushes trigger indexing", () => {
+  assert.equal(isDefaultBranchPush("refs/heads/main", "main", false), true)
+  assert.equal(isDefaultBranchPush("refs/heads/feature", "main", false), false)
+  assert.equal(isDefaultBranchPush("refs/heads/main", "main", true), false)
+  assert.equal(isDefaultBranchPush(undefined, "main", false), false)
+})
+
 test("code files are split into overlapping, source-labelled chunks", () => {
   const content = "x".repeat(7_000)
   const chunks = createCodeChunks([{ path: "src/index.ts", content }])
@@ -65,7 +72,11 @@ test("direct repository fallback ranks relevant files and excludes sensitive fil
   assert.equal(context[0].path, "src/auth.ts")
   assert.equal(isIndexableRepositoryFile({ path: ".env", type: "blob", size: 20 }), false)
   assert.equal(isIndexableRepositoryFile({ path: "certs/private.key", type: "blob", size: 20 }), false)
-  assert.equal(isIndexableRepositoryFile({ path: ".env.example", type: "blob", size: 20 }), true)
+  assert.equal(isIndexableRepositoryFile({ path: ".env.example", type: "blob", size: 20 }), false)
+  assert.equal(isIndexableRepositoryFile({ path: ".aws/credentials", type: "blob", size: 20 }), false)
+  assert.equal(isIndexableRepositoryFile({ path: "terraform/prod.tfvars", type: "blob", size: 20 }), false)
+  assert.equal(isProbablyBinaryContent(Buffer.from([0, 1, 2, 3])), true)
+  assert.equal(isProbablyBinaryContent(Buffer.from("export const safe = true")), false)
 })
 
 test("review output parser accepts fenced JSON and rejects invalid scores", () => {

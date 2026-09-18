@@ -150,6 +150,7 @@ export type FindingScalarFieldEnum = (typeof FindingScalarFieldEnum)[keyof typeo
 
 export const RepositoryCodeChunkScalarFieldEnum = {
   id: 'id',
+  repositoryId: 'repositoryId',
   repoKey: 'repoKey',
   path: 'path',
   chunkIndex: 'chunkIndex',

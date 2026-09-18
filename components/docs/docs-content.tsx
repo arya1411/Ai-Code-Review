@@ -303,7 +303,7 @@ npx inngest-cli@latest dev`}
             </p>
             <p>
               <strong className="text-neutral-200">4. The AI agent</strong> fetches the PR diff,
-              retrieves relevant codebase context from Pinecone or PostgreSQL, constructs a prompt, and calls Gemini
+              retrieves relevant codebase context from PostgreSQL or a legacy Pinecone index, constructs a prompt, and calls Gemini
               to produce a structured review object.
             </p>
             <p>
@@ -439,8 +439,8 @@ if (!timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) {
               the Gemini Embedding API, and transactionally stores user-scoped chunks in PostgreSQL.
             </p>
             <p>
-              At review time, the AI module prefers optional Pinecone retrieval, falls back to cosine
-              search over PostgreSQL vectors, and appends the top matching chunks to the LLM prompt.
+              At review time, the AI module performs cosine search over the authoritative PostgreSQL
+              vectors, uses Pinecone only for legacy indexes, and appends the top matching chunks to the LLM prompt.
             </p>
           </div>
 

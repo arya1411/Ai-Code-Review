@@ -282,6 +282,7 @@ export type RepositoryWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"Repository"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   reviews?: Prisma.ReviewListRelationFilter
+  codeChunks?: Prisma.RepositoryCodeChunkListRelationFilter
 }
 
 export type RepositoryOrderByWithRelationInput = {
@@ -300,6 +301,7 @@ export type RepositoryOrderByWithRelationInput = {
   updatedAt?: Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
   reviews?: Prisma.ReviewOrderByRelationAggregateInput
+  codeChunks?: Prisma.RepositoryCodeChunkOrderByRelationAggregateInput
 }
 
 export type RepositoryWhereUniqueInput = Prisma.AtLeast<{
@@ -322,6 +324,7 @@ export type RepositoryWhereUniqueInput = Prisma.AtLeast<{
   updatedAt?: Prisma.DateTimeFilter<"Repository"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   reviews?: Prisma.ReviewListRelationFilter
+  codeChunks?: Prisma.RepositoryCodeChunkListRelationFilter
 }, "id" | "userId_githubId">
 
 export type RepositoryOrderByWithAggregationInput = {
@@ -379,6 +382,7 @@ export type RepositoryCreateInput = {
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutRepositoriesInput
   reviews?: Prisma.ReviewCreateNestedManyWithoutRepositoryInput
+  codeChunks?: Prisma.RepositoryCodeChunkCreateNestedManyWithoutRepositoryInput
 }
 
 export type RepositoryUncheckedCreateInput = {
@@ -396,6 +400,7 @@ export type RepositoryUncheckedCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutRepositoryInput
+  codeChunks?: Prisma.RepositoryCodeChunkUncheckedCreateNestedManyWithoutRepositoryInput
 }
 
 export type RepositoryUpdateInput = {
@@ -413,6 +418,7 @@ export type RepositoryUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutRepositoriesNestedInput
   reviews?: Prisma.ReviewUpdateManyWithoutRepositoryNestedInput
+  codeChunks?: Prisma.RepositoryCodeChunkUpdateManyWithoutRepositoryNestedInput
 }
 
 export type RepositoryUncheckedUpdateInput = {
@@ -430,6 +436,7 @@ export type RepositoryUncheckedUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   reviews?: Prisma.ReviewUncheckedUpdateManyWithoutRepositoryNestedInput
+  codeChunks?: Prisma.RepositoryCodeChunkUncheckedUpdateManyWithoutRepositoryNestedInput
 }
 
 export type RepositoryCreateManyInput = {
@@ -627,6 +634,20 @@ export type RepositoryUpdateOneRequiredWithoutReviewsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.RepositoryUpdateToOneWithWhereWithoutReviewsInput, Prisma.RepositoryUpdateWithoutReviewsInput>, Prisma.RepositoryUncheckedUpdateWithoutReviewsInput>
 }
 
+export type RepositoryCreateNestedOneWithoutCodeChunksInput = {
+  create?: Prisma.XOR<Prisma.RepositoryCreateWithoutCodeChunksInput, Prisma.RepositoryUncheckedCreateWithoutCodeChunksInput>
+  connectOrCreate?: Prisma.RepositoryCreateOrConnectWithoutCodeChunksInput
+  connect?: Prisma.RepositoryWhereUniqueInput
+}
+
+export type RepositoryUpdateOneRequiredWithoutCodeChunksNestedInput = {
+  create?: Prisma.XOR<Prisma.RepositoryCreateWithoutCodeChunksInput, Prisma.RepositoryUncheckedCreateWithoutCodeChunksInput>
+  connectOrCreate?: Prisma.RepositoryCreateOrConnectWithoutCodeChunksInput
+  upsert?: Prisma.RepositoryUpsertWithoutCodeChunksInput
+  connect?: Prisma.RepositoryWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.RepositoryUpdateToOneWithWhereWithoutCodeChunksInput, Prisma.RepositoryUpdateWithoutCodeChunksInput>, Prisma.RepositoryUncheckedUpdateWithoutCodeChunksInput>
+}
+
 export type RepositoryCreateWithoutUserInput = {
   id?: string
   githubId: bigint | number
@@ -641,6 +662,7 @@ export type RepositoryCreateWithoutUserInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   reviews?: Prisma.ReviewCreateNestedManyWithoutRepositoryInput
+  codeChunks?: Prisma.RepositoryCodeChunkCreateNestedManyWithoutRepositoryInput
 }
 
 export type RepositoryUncheckedCreateWithoutUserInput = {
@@ -657,6 +679,7 @@ export type RepositoryUncheckedCreateWithoutUserInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutRepositoryInput
+  codeChunks?: Prisma.RepositoryCodeChunkUncheckedCreateNestedManyWithoutRepositoryInput
 }
 
 export type RepositoryCreateOrConnectWithoutUserInput = {
@@ -718,6 +741,7 @@ export type RepositoryCreateWithoutReviewsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutRepositoriesInput
+  codeChunks?: Prisma.RepositoryCodeChunkCreateNestedManyWithoutRepositoryInput
 }
 
 export type RepositoryUncheckedCreateWithoutReviewsInput = {
@@ -734,6 +758,7 @@ export type RepositoryUncheckedCreateWithoutReviewsInput = {
   indexError?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  codeChunks?: Prisma.RepositoryCodeChunkUncheckedCreateNestedManyWithoutRepositoryInput
 }
 
 export type RepositoryCreateOrConnectWithoutReviewsInput = {
@@ -766,6 +791,7 @@ export type RepositoryUpdateWithoutReviewsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutRepositoriesNestedInput
+  codeChunks?: Prisma.RepositoryCodeChunkUpdateManyWithoutRepositoryNestedInput
 }
 
 export type RepositoryUncheckedUpdateWithoutReviewsInput = {
@@ -782,6 +808,91 @@ export type RepositoryUncheckedUpdateWithoutReviewsInput = {
   indexError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  codeChunks?: Prisma.RepositoryCodeChunkUncheckedUpdateManyWithoutRepositoryNestedInput
+}
+
+export type RepositoryCreateWithoutCodeChunksInput = {
+  id?: string
+  githubId: bigint | number
+  name: string
+  owner: string
+  fullName: string
+  url: string
+  indexStatus?: $Enums.IndexStatus
+  indexedAt?: Date | string | null
+  indexedCommitSha?: string | null
+  indexError?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  user: Prisma.UserCreateNestedOneWithoutRepositoriesInput
+  reviews?: Prisma.ReviewCreateNestedManyWithoutRepositoryInput
+}
+
+export type RepositoryUncheckedCreateWithoutCodeChunksInput = {
+  id?: string
+  githubId: bigint | number
+  name: string
+  owner: string
+  fullName: string
+  url: string
+  userId: string
+  indexStatus?: $Enums.IndexStatus
+  indexedAt?: Date | string | null
+  indexedCommitSha?: string | null
+  indexError?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutRepositoryInput
+}
+
+export type RepositoryCreateOrConnectWithoutCodeChunksInput = {
+  where: Prisma.RepositoryWhereUniqueInput
+  create: Prisma.XOR<Prisma.RepositoryCreateWithoutCodeChunksInput, Prisma.RepositoryUncheckedCreateWithoutCodeChunksInput>
+}
+
+export type RepositoryUpsertWithoutCodeChunksInput = {
+  update: Prisma.XOR<Prisma.RepositoryUpdateWithoutCodeChunksInput, Prisma.RepositoryUncheckedUpdateWithoutCodeChunksInput>
+  create: Prisma.XOR<Prisma.RepositoryCreateWithoutCodeChunksInput, Prisma.RepositoryUncheckedCreateWithoutCodeChunksInput>
+  where?: Prisma.RepositoryWhereInput
+}
+
+export type RepositoryUpdateToOneWithWhereWithoutCodeChunksInput = {
+  where?: Prisma.RepositoryWhereInput
+  data: Prisma.XOR<Prisma.RepositoryUpdateWithoutCodeChunksInput, Prisma.RepositoryUncheckedUpdateWithoutCodeChunksInput>
+}
+
+export type RepositoryUpdateWithoutCodeChunksInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  githubId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  owner?: Prisma.StringFieldUpdateOperationsInput | string
+  fullName?: Prisma.StringFieldUpdateOperationsInput | string
+  url?: Prisma.StringFieldUpdateOperationsInput | string
+  indexStatus?: Prisma.EnumIndexStatusFieldUpdateOperationsInput | $Enums.IndexStatus
+  indexedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  indexedCommitSha?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  indexError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  user?: Prisma.UserUpdateOneRequiredWithoutRepositoriesNestedInput
+  reviews?: Prisma.ReviewUpdateManyWithoutRepositoryNestedInput
+}
+
+export type RepositoryUncheckedUpdateWithoutCodeChunksInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  githubId?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  owner?: Prisma.StringFieldUpdateOperationsInput | string
+  fullName?: Prisma.StringFieldUpdateOperationsInput | string
+  url?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  indexStatus?: Prisma.EnumIndexStatusFieldUpdateOperationsInput | $Enums.IndexStatus
+  indexedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  indexedCommitSha?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  indexError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  reviews?: Prisma.ReviewUncheckedUpdateManyWithoutRepositoryNestedInput
 }
 
 export type RepositoryCreateManyUserInput = {
@@ -813,6 +924,7 @@ export type RepositoryUpdateWithoutUserInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   reviews?: Prisma.ReviewUpdateManyWithoutRepositoryNestedInput
+  codeChunks?: Prisma.RepositoryCodeChunkUpdateManyWithoutRepositoryNestedInput
 }
 
 export type RepositoryUncheckedUpdateWithoutUserInput = {
@@ -829,6 +941,7 @@ export type RepositoryUncheckedUpdateWithoutUserInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   reviews?: Prisma.ReviewUncheckedUpdateManyWithoutRepositoryNestedInput
+  codeChunks?: Prisma.RepositoryCodeChunkUncheckedUpdateManyWithoutRepositoryNestedInput
 }
 
 export type RepositoryUncheckedUpdateManyWithoutUserInput = {
@@ -853,10 +966,12 @@ export type RepositoryUncheckedUpdateManyWithoutUserInput = {
 
 export type RepositoryCountOutputType = {
   reviews: number
+  codeChunks: number
 }
 
 export type RepositoryCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   reviews?: boolean | RepositoryCountOutputTypeCountReviewsArgs
+  codeChunks?: boolean | RepositoryCountOutputTypeCountCodeChunksArgs
 }
 
 /**
@@ -876,6 +991,13 @@ export type RepositoryCountOutputTypeCountReviewsArgs<ExtArgs extends runtime.Ty
   where?: Prisma.ReviewWhereInput
 }
 
+/**
+ * RepositoryCountOutputType without action
+ */
+export type RepositoryCountOutputTypeCountCodeChunksArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.RepositoryCodeChunkWhereInput
+}
+
 
 export type RepositorySelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -893,6 +1015,7 @@ export type RepositorySelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   reviews?: boolean | Prisma.Repository$reviewsArgs<ExtArgs>
+  codeChunks?: boolean | Prisma.Repository$codeChunksArgs<ExtArgs>
   _count?: boolean | Prisma.RepositoryCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["repository"]>
 
@@ -950,6 +1073,7 @@ export type RepositoryOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs
 export type RepositoryInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   reviews?: boolean | Prisma.Repository$reviewsArgs<ExtArgs>
+  codeChunks?: boolean | Prisma.Repository$codeChunksArgs<ExtArgs>
   _count?: boolean | Prisma.RepositoryCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type RepositoryIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -964,6 +1088,7 @@ export type $RepositoryPayload<ExtArgs extends runtime.Types.Extensions.Internal
   objects: {
     user: Prisma.$UserPayload<ExtArgs>
     reviews: Prisma.$ReviewPayload<ExtArgs>[]
+    codeChunks: Prisma.$RepositoryCodeChunkPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1375,6 +1500,7 @@ export interface Prisma__RepositoryClient<T, Null = never, ExtArgs extends runti
   readonly [Symbol.toStringTag]: "PrismaPromise"
   user<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   reviews<T extends Prisma.Repository$reviewsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Repository$reviewsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ReviewPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  codeChunks<T extends Prisma.Repository$codeChunksArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Repository$codeChunksArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$RepositoryCodeChunkPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1839,6 +1965,30 @@ export type Repository$reviewsArgs<ExtArgs extends runtime.Types.Extensions.Inte
   take?: number
   skip?: number
   distinct?: Prisma.ReviewScalarFieldEnum | Prisma.ReviewScalarFieldEnum[]
+}
+
+/**
+ * Repository.codeChunks
+ */
+export type Repository$codeChunksArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the RepositoryCodeChunk
+   */
+  select?: Prisma.RepositoryCodeChunkSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the RepositoryCodeChunk
+   */
+  omit?: Prisma.RepositoryCodeChunkOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.RepositoryCodeChunkInclude<ExtArgs> | null
+  where?: Prisma.RepositoryCodeChunkWhereInput
+  orderBy?: Prisma.RepositoryCodeChunkOrderByWithRelationInput | Prisma.RepositoryCodeChunkOrderByWithRelationInput[]
+  cursor?: Prisma.RepositoryCodeChunkWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.RepositoryCodeChunkScalarFieldEnum | Prisma.RepositoryCodeChunkScalarFieldEnum[]
 }
 
 /**

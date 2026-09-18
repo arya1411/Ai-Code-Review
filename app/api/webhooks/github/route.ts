@@ -3,16 +3,20 @@ import { randomUUID } from "crypto";
 import prisma from "@/lib/db";
 import { inngest } from "@/inngest/client";
 import { env } from "@/lib/env";
-import { verifyGitHubWebhookSignature } from "@/lib/github-webhook";
+import { isDefaultBranchPush, verifyGitHubWebhookSignature } from "@/lib/github-webhook";
 
 interface GithubRepositoryPayload {
     id?: number;
     name?: string;
     owner?: { login?: string };
+    default_branch?: string;
 }
 
 interface GithubWebhookPayload {
     action?: string;
+    ref?: string;
+    after?: string;
+    deleted?: boolean;
     repository?: GithubRepositoryPayload;
     pull_request?: {
         id?: number;
@@ -52,6 +56,14 @@ export async function POST(req: NextRequest) {
                 return NextResponse.json({ error: "Invalid repository payload" }, { status: 400 });
             }
 
+            if (!isDefaultBranchPush(body.ref, repository.default_branch, body.deleted)) {
+                return NextResponse.json({ message: "Non-default-branch push ignored" }, { status: 202 });
+            }
+
+            if (!body.after || !/^[a-f0-9]{40}$/i.test(body.after)) {
+                return NextResponse.json({ error: "Invalid push commit" }, { status: 400 });
+            }
+
             const connections = await prisma.repository.findMany({
                 where: { githubId: BigInt(repository.id) },
                 select: { id: true, userId: true },
@@ -66,6 +78,7 @@ export async function POST(req: NextRequest) {
                         owner: repository.owner!.login!,
                         repo: repository.name!,
                         userId: connection.userId,
+                        commitSha: body.after,
                     },
                 })
             ));

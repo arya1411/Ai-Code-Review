@@ -15,3 +15,12 @@ export function verifyGitHubWebhookSignature(
 
   return received.length === expected.length && timingSafeEqual(received, expected)
 }
+
+export function isDefaultBranchPush(
+  ref: string | undefined,
+  defaultBranch: string | undefined,
+  deleted: boolean | undefined,
+) {
+  if (deleted || !ref || !defaultBranch) return false
+  return ref === `refs/heads/${defaultBranch}`
+}

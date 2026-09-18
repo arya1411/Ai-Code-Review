@@ -6,13 +6,17 @@ import { indexCodeBase } from '@/module/ai/lib/rag';
 export const indexRepo = inngest.createFunction(
   {
     id: "index-repo",
+    concurrency: {
+      limit: 1,
+      key: 'event.data.userId + ":" + event.data.owner + "/" + event.data.repo',
+    },
     triggers: [
       { event: "repository.connected" },
       { event: "repository.sync" },
     ],
   },
   async ({ event, step }) => {
-    const { owner, repo, userId } = event.data;
+    const { owner, repo, userId, commitSha } = event.data;
 
     const repository = await step.run("mark-indexing", async () => {
       const connectedRepository = await prisma.repository.findFirst({
@@ -44,13 +48,17 @@ export const indexRepo = inngest.createFunction(
           throw new Error("No Github Access Token Found");
         }
 
-        const snapshot = await getRepoSnapshot(account.accessToken, owner, repo);
+        const snapshot = await getRepoSnapshot(account.accessToken, owner, repo, commitSha);
 
         if (snapshot.files.length === 0) {
           throw new Error("No indexable files were found in the repository");
         }
 
-        const result = await indexCodeBase(`${userId}:${owner}/${repo}`, snapshot.files);
+        const result = await indexCodeBase(
+          repository.id,
+          `${userId}:${owner}/${repo}`,
+          snapshot.files,
+        );
         return {
           fileCount: snapshot.files.length,
           commitSha: snapshot.commitSha,

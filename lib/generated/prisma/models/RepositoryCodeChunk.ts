@@ -36,6 +36,7 @@ export type RepositoryCodeChunkSumAggregateOutputType = {
 
 export type RepositoryCodeChunkMinAggregateOutputType = {
   id: string | null
+  repositoryId: string | null
   repoKey: string | null
   path: string | null
   chunkIndex: number | null
@@ -46,6 +47,7 @@ export type RepositoryCodeChunkMinAggregateOutputType = {
 
 export type RepositoryCodeChunkMaxAggregateOutputType = {
   id: string | null
+  repositoryId: string | null
   repoKey: string | null
   path: string | null
   chunkIndex: number | null
@@ -56,6 +58,7 @@ export type RepositoryCodeChunkMaxAggregateOutputType = {
 
 export type RepositoryCodeChunkCountAggregateOutputType = {
   id: number
+  repositoryId: number
   repoKey: number
   path: number
   chunkIndex: number
@@ -77,6 +80,7 @@ export type RepositoryCodeChunkSumAggregateInputType = {
 
 export type RepositoryCodeChunkMinAggregateInputType = {
   id?: true
+  repositoryId?: true
   repoKey?: true
   path?: true
   chunkIndex?: true
@@ -87,6 +91,7 @@ export type RepositoryCodeChunkMinAggregateInputType = {
 
 export type RepositoryCodeChunkMaxAggregateInputType = {
   id?: true
+  repositoryId?: true
   repoKey?: true
   path?: true
   chunkIndex?: true
@@ -97,6 +102,7 @@ export type RepositoryCodeChunkMaxAggregateInputType = {
 
 export type RepositoryCodeChunkCountAggregateInputType = {
   id?: true
+  repositoryId?: true
   repoKey?: true
   path?: true
   chunkIndex?: true
@@ -195,6 +201,7 @@ export type RepositoryCodeChunkGroupByArgs<ExtArgs extends runtime.Types.Extensi
 
 export type RepositoryCodeChunkGroupByOutputType = {
   id: string
+  repositoryId: string
   repoKey: string
   path: string
   chunkIndex: number
@@ -229,6 +236,7 @@ export type RepositoryCodeChunkWhereInput = {
   OR?: Prisma.RepositoryCodeChunkWhereInput[]
   NOT?: Prisma.RepositoryCodeChunkWhereInput | Prisma.RepositoryCodeChunkWhereInput[]
   id?: Prisma.StringFilter<"RepositoryCodeChunk"> | string
+  repositoryId?: Prisma.StringFilter<"RepositoryCodeChunk"> | string
   repoKey?: Prisma.StringFilter<"RepositoryCodeChunk"> | string
   path?: Prisma.StringFilter<"RepositoryCodeChunk"> | string
   chunkIndex?: Prisma.IntFilter<"RepositoryCodeChunk"> | number
@@ -236,10 +244,12 @@ export type RepositoryCodeChunkWhereInput = {
   embedding?: Prisma.JsonFilter<"RepositoryCodeChunk">
   createdAt?: Prisma.DateTimeFilter<"RepositoryCodeChunk"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"RepositoryCodeChunk"> | Date | string
+  repository?: Prisma.XOR<Prisma.RepositoryScalarRelationFilter, Prisma.RepositoryWhereInput>
 }
 
 export type RepositoryCodeChunkOrderByWithRelationInput = {
   id?: Prisma.SortOrder
+  repositoryId?: Prisma.SortOrder
   repoKey?: Prisma.SortOrder
   path?: Prisma.SortOrder
   chunkIndex?: Prisma.SortOrder
@@ -247,6 +257,7 @@ export type RepositoryCodeChunkOrderByWithRelationInput = {
   embedding?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  repository?: Prisma.RepositoryOrderByWithRelationInput
 }
 
 export type RepositoryCodeChunkWhereUniqueInput = Prisma.AtLeast<{
@@ -254,6 +265,7 @@ export type RepositoryCodeChunkWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.RepositoryCodeChunkWhereInput | Prisma.RepositoryCodeChunkWhereInput[]
   OR?: Prisma.RepositoryCodeChunkWhereInput[]
   NOT?: Prisma.RepositoryCodeChunkWhereInput | Prisma.RepositoryCodeChunkWhereInput[]
+  repositoryId?: Prisma.StringFilter<"RepositoryCodeChunk"> | string
   repoKey?: Prisma.StringFilter<"RepositoryCodeChunk"> | string
   path?: Prisma.StringFilter<"RepositoryCodeChunk"> | string
   chunkIndex?: Prisma.IntFilter<"RepositoryCodeChunk"> | number
@@ -261,10 +273,12 @@ export type RepositoryCodeChunkWhereUniqueInput = Prisma.AtLeast<{
   embedding?: Prisma.JsonFilter<"RepositoryCodeChunk">
   createdAt?: Prisma.DateTimeFilter<"RepositoryCodeChunk"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"RepositoryCodeChunk"> | Date | string
+  repository?: Prisma.XOR<Prisma.RepositoryScalarRelationFilter, Prisma.RepositoryWhereInput>
 }, "id">
 
 export type RepositoryCodeChunkOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
+  repositoryId?: Prisma.SortOrder
   repoKey?: Prisma.SortOrder
   path?: Prisma.SortOrder
   chunkIndex?: Prisma.SortOrder
@@ -284,6 +298,7 @@ export type RepositoryCodeChunkScalarWhereWithAggregatesInput = {
   OR?: Prisma.RepositoryCodeChunkScalarWhereWithAggregatesInput[]
   NOT?: Prisma.RepositoryCodeChunkScalarWhereWithAggregatesInput | Prisma.RepositoryCodeChunkScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"RepositoryCodeChunk"> | string
+  repositoryId?: Prisma.StringWithAggregatesFilter<"RepositoryCodeChunk"> | string
   repoKey?: Prisma.StringWithAggregatesFilter<"RepositoryCodeChunk"> | string
   path?: Prisma.StringWithAggregatesFilter<"RepositoryCodeChunk"> | string
   chunkIndex?: Prisma.IntWithAggregatesFilter<"RepositoryCodeChunk"> | number
@@ -302,10 +317,12 @@ export type RepositoryCodeChunkCreateInput = {
   embedding: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
+  repository: Prisma.RepositoryCreateNestedOneWithoutCodeChunksInput
 }
 
 export type RepositoryCodeChunkUncheckedCreateInput = {
   id: string
+  repositoryId: string
   repoKey: string
   path: string
   chunkIndex: number
@@ -324,10 +341,12 @@ export type RepositoryCodeChunkUpdateInput = {
   embedding?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  repository?: Prisma.RepositoryUpdateOneRequiredWithoutCodeChunksNestedInput
 }
 
 export type RepositoryCodeChunkUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  repositoryId?: Prisma.StringFieldUpdateOperationsInput | string
   repoKey?: Prisma.StringFieldUpdateOperationsInput | string
   path?: Prisma.StringFieldUpdateOperationsInput | string
   chunkIndex?: Prisma.IntFieldUpdateOperationsInput | number
@@ -339,6 +358,7 @@ export type RepositoryCodeChunkUncheckedUpdateInput = {
 
 export type RepositoryCodeChunkCreateManyInput = {
   id: string
+  repositoryId: string
   repoKey: string
   path: string
   chunkIndex: number
@@ -361,6 +381,7 @@ export type RepositoryCodeChunkUpdateManyMutationInput = {
 
 export type RepositoryCodeChunkUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  repositoryId?: Prisma.StringFieldUpdateOperationsInput | string
   repoKey?: Prisma.StringFieldUpdateOperationsInput | string
   path?: Prisma.StringFieldUpdateOperationsInput | string
   chunkIndex?: Prisma.IntFieldUpdateOperationsInput | number
@@ -370,8 +391,19 @@ export type RepositoryCodeChunkUncheckedUpdateManyInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
+export type RepositoryCodeChunkListRelationFilter = {
+  every?: Prisma.RepositoryCodeChunkWhereInput
+  some?: Prisma.RepositoryCodeChunkWhereInput
+  none?: Prisma.RepositoryCodeChunkWhereInput
+}
+
+export type RepositoryCodeChunkOrderByRelationAggregateInput = {
+  _count?: Prisma.SortOrder
+}
+
 export type RepositoryCodeChunkCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  repositoryId?: Prisma.SortOrder
   repoKey?: Prisma.SortOrder
   path?: Prisma.SortOrder
   chunkIndex?: Prisma.SortOrder
@@ -387,6 +419,7 @@ export type RepositoryCodeChunkAvgOrderByAggregateInput = {
 
 export type RepositoryCodeChunkMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  repositoryId?: Prisma.SortOrder
   repoKey?: Prisma.SortOrder
   path?: Prisma.SortOrder
   chunkIndex?: Prisma.SortOrder
@@ -397,6 +430,7 @@ export type RepositoryCodeChunkMaxOrderByAggregateInput = {
 
 export type RepositoryCodeChunkMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  repositoryId?: Prisma.SortOrder
   repoKey?: Prisma.SortOrder
   path?: Prisma.SortOrder
   chunkIndex?: Prisma.SortOrder
@@ -409,10 +443,160 @@ export type RepositoryCodeChunkSumOrderByAggregateInput = {
   chunkIndex?: Prisma.SortOrder
 }
 
+export type RepositoryCodeChunkCreateNestedManyWithoutRepositoryInput = {
+  create?: Prisma.XOR<Prisma.RepositoryCodeChunkCreateWithoutRepositoryInput, Prisma.RepositoryCodeChunkUncheckedCreateWithoutRepositoryInput> | Prisma.RepositoryCodeChunkCreateWithoutRepositoryInput[] | Prisma.RepositoryCodeChunkUncheckedCreateWithoutRepositoryInput[]
+  connectOrCreate?: Prisma.RepositoryCodeChunkCreateOrConnectWithoutRepositoryInput | Prisma.RepositoryCodeChunkCreateOrConnectWithoutRepositoryInput[]
+  createMany?: Prisma.RepositoryCodeChunkCreateManyRepositoryInputEnvelope
+  connect?: Prisma.RepositoryCodeChunkWhereUniqueInput | Prisma.RepositoryCodeChunkWhereUniqueInput[]
+}
+
+export type RepositoryCodeChunkUncheckedCreateNestedManyWithoutRepositoryInput = {
+  create?: Prisma.XOR<Prisma.RepositoryCodeChunkCreateWithoutRepositoryInput, Prisma.RepositoryCodeChunkUncheckedCreateWithoutRepositoryInput> | Prisma.RepositoryCodeChunkCreateWithoutRepositoryInput[] | Prisma.RepositoryCodeChunkUncheckedCreateWithoutRepositoryInput[]
+  connectOrCreate?: Prisma.RepositoryCodeChunkCreateOrConnectWithoutRepositoryInput | Prisma.RepositoryCodeChunkCreateOrConnectWithoutRepositoryInput[]
+  createMany?: Prisma.RepositoryCodeChunkCreateManyRepositoryInputEnvelope
+  connect?: Prisma.RepositoryCodeChunkWhereUniqueInput | Prisma.RepositoryCodeChunkWhereUniqueInput[]
+}
+
+export type RepositoryCodeChunkUpdateManyWithoutRepositoryNestedInput = {
+  create?: Prisma.XOR<Prisma.RepositoryCodeChunkCreateWithoutRepositoryInput, Prisma.RepositoryCodeChunkUncheckedCreateWithoutRepositoryInput> | Prisma.RepositoryCodeChunkCreateWithoutRepositoryInput[] | Prisma.RepositoryCodeChunkUncheckedCreateWithoutRepositoryInput[]
+  connectOrCreate?: Prisma.RepositoryCodeChunkCreateOrConnectWithoutRepositoryInput | Prisma.RepositoryCodeChunkCreateOrConnectWithoutRepositoryInput[]
+  upsert?: Prisma.RepositoryCodeChunkUpsertWithWhereUniqueWithoutRepositoryInput | Prisma.RepositoryCodeChunkUpsertWithWhereUniqueWithoutRepositoryInput[]
+  createMany?: Prisma.RepositoryCodeChunkCreateManyRepositoryInputEnvelope
+  set?: Prisma.RepositoryCodeChunkWhereUniqueInput | Prisma.RepositoryCodeChunkWhereUniqueInput[]
+  disconnect?: Prisma.RepositoryCodeChunkWhereUniqueInput | Prisma.RepositoryCodeChunkWhereUniqueInput[]
+  delete?: Prisma.RepositoryCodeChunkWhereUniqueInput | Prisma.RepositoryCodeChunkWhereUniqueInput[]
+  connect?: Prisma.RepositoryCodeChunkWhereUniqueInput | Prisma.RepositoryCodeChunkWhereUniqueInput[]
+  update?: Prisma.RepositoryCodeChunkUpdateWithWhereUniqueWithoutRepositoryInput | Prisma.RepositoryCodeChunkUpdateWithWhereUniqueWithoutRepositoryInput[]
+  updateMany?: Prisma.RepositoryCodeChunkUpdateManyWithWhereWithoutRepositoryInput | Prisma.RepositoryCodeChunkUpdateManyWithWhereWithoutRepositoryInput[]
+  deleteMany?: Prisma.RepositoryCodeChunkScalarWhereInput | Prisma.RepositoryCodeChunkScalarWhereInput[]
+}
+
+export type RepositoryCodeChunkUncheckedUpdateManyWithoutRepositoryNestedInput = {
+  create?: Prisma.XOR<Prisma.RepositoryCodeChunkCreateWithoutRepositoryInput, Prisma.RepositoryCodeChunkUncheckedCreateWithoutRepositoryInput> | Prisma.RepositoryCodeChunkCreateWithoutRepositoryInput[] | Prisma.RepositoryCodeChunkUncheckedCreateWithoutRepositoryInput[]
+  connectOrCreate?: Prisma.RepositoryCodeChunkCreateOrConnectWithoutRepositoryInput | Prisma.RepositoryCodeChunkCreateOrConnectWithoutRepositoryInput[]
+  upsert?: Prisma.RepositoryCodeChunkUpsertWithWhereUniqueWithoutRepositoryInput | Prisma.RepositoryCodeChunkUpsertWithWhereUniqueWithoutRepositoryInput[]
+  createMany?: Prisma.RepositoryCodeChunkCreateManyRepositoryInputEnvelope
+  set?: Prisma.RepositoryCodeChunkWhereUniqueInput | Prisma.RepositoryCodeChunkWhereUniqueInput[]
+  disconnect?: Prisma.RepositoryCodeChunkWhereUniqueInput | Prisma.RepositoryCodeChunkWhereUniqueInput[]
+  delete?: Prisma.RepositoryCodeChunkWhereUniqueInput | Prisma.RepositoryCodeChunkWhereUniqueInput[]
+  connect?: Prisma.RepositoryCodeChunkWhereUniqueInput | Prisma.RepositoryCodeChunkWhereUniqueInput[]
+  update?: Prisma.RepositoryCodeChunkUpdateWithWhereUniqueWithoutRepositoryInput | Prisma.RepositoryCodeChunkUpdateWithWhereUniqueWithoutRepositoryInput[]
+  updateMany?: Prisma.RepositoryCodeChunkUpdateManyWithWhereWithoutRepositoryInput | Prisma.RepositoryCodeChunkUpdateManyWithWhereWithoutRepositoryInput[]
+  deleteMany?: Prisma.RepositoryCodeChunkScalarWhereInput | Prisma.RepositoryCodeChunkScalarWhereInput[]
+}
+
+export type RepositoryCodeChunkCreateWithoutRepositoryInput = {
+  id: string
+  repoKey: string
+  path: string
+  chunkIndex: number
+  content: string
+  embedding: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Date | string
+  updatedAt?: Date | string
+}
+
+export type RepositoryCodeChunkUncheckedCreateWithoutRepositoryInput = {
+  id: string
+  repoKey: string
+  path: string
+  chunkIndex: number
+  content: string
+  embedding: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Date | string
+  updatedAt?: Date | string
+}
+
+export type RepositoryCodeChunkCreateOrConnectWithoutRepositoryInput = {
+  where: Prisma.RepositoryCodeChunkWhereUniqueInput
+  create: Prisma.XOR<Prisma.RepositoryCodeChunkCreateWithoutRepositoryInput, Prisma.RepositoryCodeChunkUncheckedCreateWithoutRepositoryInput>
+}
+
+export type RepositoryCodeChunkCreateManyRepositoryInputEnvelope = {
+  data: Prisma.RepositoryCodeChunkCreateManyRepositoryInput | Prisma.RepositoryCodeChunkCreateManyRepositoryInput[]
+  skipDuplicates?: boolean
+}
+
+export type RepositoryCodeChunkUpsertWithWhereUniqueWithoutRepositoryInput = {
+  where: Prisma.RepositoryCodeChunkWhereUniqueInput
+  update: Prisma.XOR<Prisma.RepositoryCodeChunkUpdateWithoutRepositoryInput, Prisma.RepositoryCodeChunkUncheckedUpdateWithoutRepositoryInput>
+  create: Prisma.XOR<Prisma.RepositoryCodeChunkCreateWithoutRepositoryInput, Prisma.RepositoryCodeChunkUncheckedCreateWithoutRepositoryInput>
+}
+
+export type RepositoryCodeChunkUpdateWithWhereUniqueWithoutRepositoryInput = {
+  where: Prisma.RepositoryCodeChunkWhereUniqueInput
+  data: Prisma.XOR<Prisma.RepositoryCodeChunkUpdateWithoutRepositoryInput, Prisma.RepositoryCodeChunkUncheckedUpdateWithoutRepositoryInput>
+}
+
+export type RepositoryCodeChunkUpdateManyWithWhereWithoutRepositoryInput = {
+  where: Prisma.RepositoryCodeChunkScalarWhereInput
+  data: Prisma.XOR<Prisma.RepositoryCodeChunkUpdateManyMutationInput, Prisma.RepositoryCodeChunkUncheckedUpdateManyWithoutRepositoryInput>
+}
+
+export type RepositoryCodeChunkScalarWhereInput = {
+  AND?: Prisma.RepositoryCodeChunkScalarWhereInput | Prisma.RepositoryCodeChunkScalarWhereInput[]
+  OR?: Prisma.RepositoryCodeChunkScalarWhereInput[]
+  NOT?: Prisma.RepositoryCodeChunkScalarWhereInput | Prisma.RepositoryCodeChunkScalarWhereInput[]
+  id?: Prisma.StringFilter<"RepositoryCodeChunk"> | string
+  repositoryId?: Prisma.StringFilter<"RepositoryCodeChunk"> | string
+  repoKey?: Prisma.StringFilter<"RepositoryCodeChunk"> | string
+  path?: Prisma.StringFilter<"RepositoryCodeChunk"> | string
+  chunkIndex?: Prisma.IntFilter<"RepositoryCodeChunk"> | number
+  content?: Prisma.StringFilter<"RepositoryCodeChunk"> | string
+  embedding?: Prisma.JsonFilter<"RepositoryCodeChunk">
+  createdAt?: Prisma.DateTimeFilter<"RepositoryCodeChunk"> | Date | string
+  updatedAt?: Prisma.DateTimeFilter<"RepositoryCodeChunk"> | Date | string
+}
+
+export type RepositoryCodeChunkCreateManyRepositoryInput = {
+  id: string
+  repoKey: string
+  path: string
+  chunkIndex: number
+  content: string
+  embedding: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Date | string
+  updatedAt?: Date | string
+}
+
+export type RepositoryCodeChunkUpdateWithoutRepositoryInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  repoKey?: Prisma.StringFieldUpdateOperationsInput | string
+  path?: Prisma.StringFieldUpdateOperationsInput | string
+  chunkIndex?: Prisma.IntFieldUpdateOperationsInput | number
+  content?: Prisma.StringFieldUpdateOperationsInput | string
+  embedding?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type RepositoryCodeChunkUncheckedUpdateWithoutRepositoryInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  repoKey?: Prisma.StringFieldUpdateOperationsInput | string
+  path?: Prisma.StringFieldUpdateOperationsInput | string
+  chunkIndex?: Prisma.IntFieldUpdateOperationsInput | number
+  content?: Prisma.StringFieldUpdateOperationsInput | string
+  embedding?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type RepositoryCodeChunkUncheckedUpdateManyWithoutRepositoryInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  repoKey?: Prisma.StringFieldUpdateOperationsInput | string
+  path?: Prisma.StringFieldUpdateOperationsInput | string
+  chunkIndex?: Prisma.IntFieldUpdateOperationsInput | number
+  content?: Prisma.StringFieldUpdateOperationsInput | string
+  embedding?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
 
 
 export type RepositoryCodeChunkSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  repositoryId?: boolean
   repoKey?: boolean
   path?: boolean
   chunkIndex?: boolean
@@ -420,10 +604,12 @@ export type RepositoryCodeChunkSelect<ExtArgs extends runtime.Types.Extensions.I
   embedding?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  repository?: boolean | Prisma.RepositoryDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["repositoryCodeChunk"]>
 
 export type RepositoryCodeChunkSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  repositoryId?: boolean
   repoKey?: boolean
   path?: boolean
   chunkIndex?: boolean
@@ -431,10 +617,12 @@ export type RepositoryCodeChunkSelectCreateManyAndReturn<ExtArgs extends runtime
   embedding?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  repository?: boolean | Prisma.RepositoryDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["repositoryCodeChunk"]>
 
 export type RepositoryCodeChunkSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  repositoryId?: boolean
   repoKey?: boolean
   path?: boolean
   chunkIndex?: boolean
@@ -442,10 +630,12 @@ export type RepositoryCodeChunkSelectUpdateManyAndReturn<ExtArgs extends runtime
   embedding?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  repository?: boolean | Prisma.RepositoryDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["repositoryCodeChunk"]>
 
 export type RepositoryCodeChunkSelectScalar = {
   id?: boolean
+  repositoryId?: boolean
   repoKey?: boolean
   path?: boolean
   chunkIndex?: boolean
@@ -455,13 +645,25 @@ export type RepositoryCodeChunkSelectScalar = {
   updatedAt?: boolean
 }
 
-export type RepositoryCodeChunkOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "repoKey" | "path" | "chunkIndex" | "content" | "embedding" | "createdAt" | "updatedAt", ExtArgs["result"]["repositoryCodeChunk"]>
+export type RepositoryCodeChunkOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "repositoryId" | "repoKey" | "path" | "chunkIndex" | "content" | "embedding" | "createdAt" | "updatedAt", ExtArgs["result"]["repositoryCodeChunk"]>
+export type RepositoryCodeChunkInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  repository?: boolean | Prisma.RepositoryDefaultArgs<ExtArgs>
+}
+export type RepositoryCodeChunkIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  repository?: boolean | Prisma.RepositoryDefaultArgs<ExtArgs>
+}
+export type RepositoryCodeChunkIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  repository?: boolean | Prisma.RepositoryDefaultArgs<ExtArgs>
+}
 
 export type $RepositoryCodeChunkPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "RepositoryCodeChunk"
-  objects: {}
+  objects: {
+    repository: Prisma.$RepositoryPayload<ExtArgs>
+  }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
+    repositoryId: string
     repoKey: string
     path: string
     chunkIndex: number
@@ -863,6 +1065,7 @@ readonly fields: RepositoryCodeChunkFieldRefs;
  */
 export interface Prisma__RepositoryCodeChunkClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
+  repository<T extends Prisma.RepositoryDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.RepositoryDefaultArgs<ExtArgs>>): Prisma.Prisma__RepositoryClient<runtime.Types.Result.GetResult<Prisma.$RepositoryPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -893,6 +1096,7 @@ export interface Prisma__RepositoryCodeChunkClient<T, Null = never, ExtArgs exte
  */
 export interface RepositoryCodeChunkFieldRefs {
   readonly id: Prisma.FieldRef<"RepositoryCodeChunk", 'String'>
+  readonly repositoryId: Prisma.FieldRef<"RepositoryCodeChunk", 'String'>
   readonly repoKey: Prisma.FieldRef<"RepositoryCodeChunk", 'String'>
   readonly path: Prisma.FieldRef<"RepositoryCodeChunk", 'String'>
   readonly chunkIndex: Prisma.FieldRef<"RepositoryCodeChunk", 'Int'>
@@ -917,6 +1121,10 @@ export type RepositoryCodeChunkFindUniqueArgs<ExtArgs extends runtime.Types.Exte
    */
   omit?: Prisma.RepositoryCodeChunkOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.RepositoryCodeChunkInclude<ExtArgs> | null
+  /**
    * Filter, which RepositoryCodeChunk to fetch.
    */
   where: Prisma.RepositoryCodeChunkWhereUniqueInput
@@ -935,6 +1143,10 @@ export type RepositoryCodeChunkFindUniqueOrThrowArgs<ExtArgs extends runtime.Typ
    */
   omit?: Prisma.RepositoryCodeChunkOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.RepositoryCodeChunkInclude<ExtArgs> | null
+  /**
    * Filter, which RepositoryCodeChunk to fetch.
    */
   where: Prisma.RepositoryCodeChunkWhereUniqueInput
@@ -952,6 +1164,10 @@ export type RepositoryCodeChunkFindFirstArgs<ExtArgs extends runtime.Types.Exten
    * Omit specific fields from the RepositoryCodeChunk
    */
   omit?: Prisma.RepositoryCodeChunkOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.RepositoryCodeChunkInclude<ExtArgs> | null
   /**
    * Filter, which RepositoryCodeChunk to fetch.
    */
@@ -1001,6 +1217,10 @@ export type RepositoryCodeChunkFindFirstOrThrowArgs<ExtArgs extends runtime.Type
    */
   omit?: Prisma.RepositoryCodeChunkOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.RepositoryCodeChunkInclude<ExtArgs> | null
+  /**
    * Filter, which RepositoryCodeChunk to fetch.
    */
   where?: Prisma.RepositoryCodeChunkWhereInput
@@ -1048,6 +1268,10 @@ export type RepositoryCodeChunkFindManyArgs<ExtArgs extends runtime.Types.Extens
    * Omit specific fields from the RepositoryCodeChunk
    */
   omit?: Prisma.RepositoryCodeChunkOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.RepositoryCodeChunkInclude<ExtArgs> | null
   /**
    * Filter, which RepositoryCodeChunks to fetch.
    */
@@ -1097,6 +1321,10 @@ export type RepositoryCodeChunkCreateArgs<ExtArgs extends runtime.Types.Extensio
    */
   omit?: Prisma.RepositoryCodeChunkOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.RepositoryCodeChunkInclude<ExtArgs> | null
+  /**
    * The data needed to create a RepositoryCodeChunk.
    */
   data: Prisma.XOR<Prisma.RepositoryCodeChunkCreateInput, Prisma.RepositoryCodeChunkUncheckedCreateInput>
@@ -1130,6 +1358,10 @@ export type RepositoryCodeChunkCreateManyAndReturnArgs<ExtArgs extends runtime.T
    */
   data: Prisma.RepositoryCodeChunkCreateManyInput | Prisma.RepositoryCodeChunkCreateManyInput[]
   skipDuplicates?: boolean
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.RepositoryCodeChunkIncludeCreateManyAndReturn<ExtArgs> | null
 }
 
 /**
@@ -1144,6 +1376,10 @@ export type RepositoryCodeChunkUpdateArgs<ExtArgs extends runtime.Types.Extensio
    * Omit specific fields from the RepositoryCodeChunk
    */
   omit?: Prisma.RepositoryCodeChunkOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.RepositoryCodeChunkInclude<ExtArgs> | null
   /**
    * The data needed to update a RepositoryCodeChunk.
    */
@@ -1196,6 +1432,10 @@ export type RepositoryCodeChunkUpdateManyAndReturnArgs<ExtArgs extends runtime.T
    * Limit how many RepositoryCodeChunks to update.
    */
   limit?: number
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.RepositoryCodeChunkIncludeUpdateManyAndReturn<ExtArgs> | null
 }
 
 /**
@@ -1210,6 +1450,10 @@ export type RepositoryCodeChunkUpsertArgs<ExtArgs extends runtime.Types.Extensio
    * Omit specific fields from the RepositoryCodeChunk
    */
   omit?: Prisma.RepositoryCodeChunkOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.RepositoryCodeChunkInclude<ExtArgs> | null
   /**
    * The filter to search for the RepositoryCodeChunk to update in case it exists.
    */
@@ -1236,6 +1480,10 @@ export type RepositoryCodeChunkDeleteArgs<ExtArgs extends runtime.Types.Extensio
    * Omit specific fields from the RepositoryCodeChunk
    */
   omit?: Prisma.RepositoryCodeChunkOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.RepositoryCodeChunkInclude<ExtArgs> | null
   /**
    * Filter which RepositoryCodeChunk to delete.
    */
@@ -1268,4 +1516,8 @@ export type RepositoryCodeChunkDefaultArgs<ExtArgs extends runtime.Types.Extensi
    * Omit specific fields from the RepositoryCodeChunk
    */
   omit?: Prisma.RepositoryCodeChunkOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.RepositoryCodeChunkInclude<ExtArgs> | null
 }

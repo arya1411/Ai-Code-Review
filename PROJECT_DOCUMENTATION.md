@@ -18,7 +18,7 @@ This document describes the implemented MVP. For setup, environment variables, v
 4. A user-scoped `Repository` row is created.
 5. A `repository.connected` Inngest event starts indexing.
 6. The indexing function records `INDEXING`, fetches source files, chunks them, generates embeddings, and transactionally replaces that repository's PostgreSQL chunks.
-7. Pinecone is updated on a best-effort basis when configured; PostgreSQL remains the durable fallback if Pinecone is absent or unavailable.
+7. Pinecone is updated on a best-effort basis when configured; PostgreSQL remains the authoritative index so partial Pinecone writes cannot hide valid chunks.
 8. The repository becomes `READY`; failures are recorded as `FAILED` with an error message.
 
 Push webhooks emit `repository.sync`, which runs the same refresh pipeline. Users can also request a refresh from `/repositories`.
@@ -43,7 +43,7 @@ Chat messages are intentionally session-local in the MVP.
 5. `pull-request.review.requested` starts a background Inngest function.
 6. The function moves the review through `QUEUED`, `ANALYZING`, and either `COMPLETED` or `FAILED`.
 7. Octokit loads PR metadata and changed-file patches.
-8. The retrieval layer loads related repository chunks from Pinecone or PostgreSQL and degrades to diff-only analysis if context retrieval fails.
+8. The retrieval layer loads related repository chunks from PostgreSQL, uses Pinecone only for legacy indexes without PostgreSQL chunks, and degrades to diff-only analysis if context retrieval fails.
 9. Gemini returns schema-validated JSON containing a risk score, risk level, summary, reasons, and findings.
 10. The review and its findings are stored transactionally, displayed on `/reviews`, and published as a create-or-update GitHub PR comment.
 

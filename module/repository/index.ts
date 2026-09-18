@@ -51,19 +51,28 @@ export const reindexRepository = async (repositoryId: string) => {
 
     if (!repository) throw new Error("Repository not found or access denied")
 
-    await inngest.send({
-        name: "repository.sync",
-        data: {
-            owner: repository.owner,
-            repo: repository.name,
-            userId: session.user.id,
-        },
-    })
-
     await prisma.repository.update({
         where: { id: repository.id },
         data: { indexStatus: "INDEXING", indexError: null },
     })
+
+    try {
+        await inngest.send({
+            name: "repository.sync",
+            data: {
+                owner: repository.owner,
+                repo: repository.name,
+                userId: session.user.id,
+            },
+        })
+    } catch (error) {
+        const message = error instanceof Error ? error.message : "Could not queue repository indexing"
+        await prisma.repository.update({
+            where: { id: repository.id },
+            data: { indexStatus: "FAILED", indexError: message.slice(0, 500) },
+        })
+        throw error
+    }
 
     revalidatePath("/repositories")
     revalidatePath("/dashboard/chat")
