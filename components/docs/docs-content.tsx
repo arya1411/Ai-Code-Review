@@ -62,8 +62,8 @@ function ArchDiagram() {
     { icon: GitBranch, label: "GitHub PR", sub: "Webhook event" },
     { icon: Webhook, label: "Next.js API", sub: "/api/webhooks/github" },
     { icon: Zap, label: "Inngest", sub: "Background job queue" },
-    { icon: Cpu, label: "AI Agent", sub: "Gemini 2.0 Flash" },
-    { icon: Database, label: "Pinecone", sub: "Vector store / RAG" },
+    { icon: Cpu, label: "AI Agent", sub: "Gemini 3.6 Flash" },
+    { icon: Database, label: "PostgreSQL", sub: "Durable vector store / RAG" },
   ]
 
   return (
@@ -109,8 +109,8 @@ const techItems: TechCard[] = [
   { name: "Prisma 7 + PostgreSQL", role: "ORM with Postgres adapter", badge: "Data" },
   { name: "better-auth", role: "GitHub OAuth session management", badge: "Auth" },
   { name: "Inngest", role: "Durable background job queue", badge: "Jobs" },
-  { name: "Google Gemini 2.0 Flash", role: "LLM powering AI review agent", badge: "AI" },
-  { name: "Pinecone", role: "Vector store for codebase RAG", badge: "AI" },
+  { name: "Google Gemini 3.6 Flash", role: "LLM powering reviews and chat", badge: "AI" },
+  { name: "Pinecone", role: "Optional vector retrieval accelerator", badge: "AI" },
   { name: "Vercel AI SDK", role: "Streaming AI responses & tooling", badge: "AI" },
   { name: "Octokit", role: "GitHub REST & GraphQL API client", badge: "GitHub" },
   { name: "React Query", role: "Client-side data fetching & cache", badge: "Client" },
@@ -176,8 +176,8 @@ export function DocsContent() {
             <p>
               When a developer opens a pull request, codeSentinel receives a GitHub webhook, queues
               an Inngest background job, then runs an AI agent powered by Google Gemini that
-              reads the diff, queries the codebase vector store for context, and posts a structured
-              review back to GitHub.
+              reads the diff, queries the codebase vector store for context, and stores a structured
+              review for the codeSentinel dashboard.
             </p>
             <p>
               The entire pipeline is fully asynchronous and durable — if any step fails, Inngest
@@ -232,6 +232,7 @@ GITHUB_CLIENT_SECRET=...
 GITHUB_WEBHOOK_SECRET=...
 APP_BASE_URL=https://your-public-app.example.com
 GOOGLE_GENERATIVE_AI_API_KEY=...
+# Optional
 PINECONE_DB_API_KEY=...
 INNGEST_SIGNING_KEY=...
 INNGEST_EVENT_KEY=...`}
@@ -258,12 +259,10 @@ npx inngest-cli@latest dev`}
               </Callout>
             </Step>
 
-            <Step number={5} title="Register your GitHub App webhook">
+            <Step number={5} title="Connect a repository">
               <p>
-                Point your GitHub App (or repository webhook) to{" "}
-                <code className="font-mono text-xs text-neutral-200">{`https://<your-domain>/api/webhooks/github`}</code>{" "}
-                and subscribe to the <strong className="text-neutral-300">pull_request</strong> and{" "}
-                <strong className="text-neutral-300">push</strong> events.
+                Sign in, open <code className="font-mono text-xs text-neutral-200">/repositories</code>,
+                and connect a repository. codeSentinel installs the signed webhook and queues the initial index automatically.
               </p>
             </Step>
           </div>
@@ -294,8 +293,8 @@ npx inngest-cli@latest dev`}
               <strong className="text-neutral-200">2. The Next.js API route</strong> at{" "}
               <code className="font-mono text-xs text-neutral-300">/api/webhooks/github</code> validates
               the HMAC-SHA256 signature, parses the payload, and immediately fires an Inngest event
-              — returning a <code className="font-mono text-xs text-neutral-300">200 OK</code> to
-              GitHub in under 100ms.
+              — returning a <code className="font-mono text-xs text-neutral-300">202 Accepted</code> after
+              the background work has been queued.
             </p>
             <p>
               <strong className="text-neutral-200">3. Inngest picks up the event</strong> and runs
@@ -304,7 +303,7 @@ npx inngest-cli@latest dev`}
             </p>
             <p>
               <strong className="text-neutral-200">4. The AI agent</strong> fetches the PR diff,
-              queries Pinecone for relevant codebase context, constructs a prompt, and calls Gemini
+              retrieves relevant codebase context from Pinecone or PostgreSQL, constructs a prompt, and calls Gemini
               to produce a structured review object.
             </p>
             <p>
@@ -332,8 +331,8 @@ npx inngest-cli@latest dev`}
             <p>
               Users authenticate using GitHub OAuth powered by{" "}
               <strong className="text-neutral-300">better-auth</strong>. The access token is stored
-              encrypted in the database and used later by background jobs to call the GitHub API on
-              behalf of the user — fetching file contents, posting review comments, and reading PR
+              server-side in the database and used later by background jobs to call the GitHub API on
+              behalf of the user — fetching file contents and reading PR
               metadata.
             </p>
           </div>
@@ -377,13 +376,13 @@ if (!timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) {
 
           <div className="space-y-4 text-sm leading-relaxed text-neutral-400 mb-8">
             <p>
-              The pipeline is defined in{" "}
+              The pipelines are defined in{" "}
               <code className="font-mono text-xs text-neutral-300">
-                inngest/functions/index.ts
+                inngest/functions/
               </code>{" "}
-              and runs as a background job triggered by the{" "}
+              and run as background jobs triggered by{" "}
               <code className="font-mono text-xs text-neutral-300">repository.connected</code> and{" "}
-              <code className="font-mono text-xs text-neutral-300">pull_request.opened</code> events.
+              <code className="font-mono text-xs text-neutral-300">pull-request.review.requested</code> events.
             </p>
           </div>
 
@@ -392,15 +391,15 @@ if (!timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) {
             {[
               {
                 step: "fetch-files",
-                desc: "Fetches the list of changed files from the GitHub API using the authenticated user token. Returns structured file metadata.",
+                desc: "Fetches repository source for indexing or changed-file patches for a pull request using the authenticated user's GitHub token.",
               },
               {
                 step: "index-codebase",
-                desc: "Generates embeddings for each file using the Gemini embedding model and upserts them into the Pinecone vector index.",
+                desc: "Chunks source files, generates Gemini embeddings, upserts current vectors, and removes vectors for deleted or renamed files.",
               },
               {
                 step: "run-review",
-                desc: "Constructs a system prompt with the PR diff + RAG context. Calls Gemini 2.0 Flash to produce a structured JSON review.",
+                desc: "Constructs a prompt with the PR diff and retrieved context. Gemini 3.6 Flash produces a schema-validated review.",
               },
               {
                 step: "persist-results",
@@ -435,34 +434,33 @@ if (!timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) {
 
           <div className="space-y-4 text-sm leading-relaxed text-neutral-400 mb-8">
             <p>
-              When a repository is first connected, codeSentinel fetches every file via the GitHub
-              API, chunks them by function/class boundaries, generates vector embeddings using
-              the Gemini Embedding API, and stores them in a Pinecone namespace keyed by repo ID.
+              When a repository is connected, codeSentinel fetches up to 100 indexable files via the GitHub
+              API, splits them into overlapping fixed-size chunks, generates vector embeddings using
+              the Gemini Embedding API, and transactionally stores user-scoped chunks in PostgreSQL.
             </p>
             <p>
-              At review time, the AI module queries Pinecone with the diff as the search vector,
-              retrieves the top-K most similar code chunks, and appends them to the LLM prompt as
-              grounding context.
+              At review time, the AI module prefers optional Pinecone retrieval, falls back to cosine
+              search over PostgreSQL vectors, and appends the top matching chunks to the LLM prompt.
             </p>
           </div>
 
-          <SubHeading>Pinecone index setup</SubHeading>
+          <SubHeading>Optional Pinecone acceleration</SubHeading>
           <CodeBlock
             language="typescript"
             code={`// lib/pinecone.ts
 import { Pinecone } from "@pinecone-database/pinecone"
 
-const pinecone = new Pinecone({
-  apiKey: process.env.PINECONE_API_KEY!,
-})
+const pinecone = env.PINECONE_DB_API_KEY
+  ? new Pinecone({ apiKey: env.PINECONE_DB_API_KEY })
+  : null
 
-export const index = pinecone.index(process.env.PINECONE_INDEX!)`}
+export const index = pinecone?.index(env.PINECONE_INDEX) ?? null`}
           />
 
           <div className="mt-6">
             <Callout type="tip">
-              Each repository gets its own Pinecone namespace (using the repo ID) so vectors never
-              cross-contaminate between different users&apos; codebases.
+              Every query uses a user-scoped repository key so retrieved chunks cannot cross between
+              connected users&apos; codebases. PostgreSQL works without any Pinecone credential.
             </Callout>
           </div>
         </section>
@@ -492,7 +490,7 @@ export const index = pinecone.index(process.env.PINECONE_INDEX!)`}
             id="database"
             label="Tech Stack"
             title="Database & ORM"
-            description="codeSentinel uses PostgreSQL with Prisma ORM. The Prisma Postgres adapter is used for edge-compatible connection pooling."
+            description="codeSentinel uses PostgreSQL with Prisma ORM and the Prisma PostgreSQL adapter."
           />
 
           <SubHeading>Schema highlights</SubHeading>
@@ -500,11 +498,11 @@ export const index = pinecone.index(process.env.PINECONE_INDEX!)`}
             headers={["Model", "Purpose"]}
             rows={[
               { col1: "User", col2: "Authenticated GitHub user profile" },
-              { col1: "Account", col2: "OAuth account + encrypted access token" },
+              { col1: "Account", col2: "Server-side OAuth account and access token" },
               { col1: "Session", col2: "Active auth session (managed by better-auth)" },
               { col1: "Repository", col2: "Connected GitHub repository metadata" },
               { col1: "Review", col2: "AI-generated review per pull request" },
-              { col1: "ReviewComment", col2: "Individual inline comments from review" },
+              { col1: "Finding", col2: "Individual file-level findings from a review" },
             ]}
           />
 
@@ -559,7 +557,7 @@ export const indexRepo = inngest.createFunction(
     })
 
     await step.run("index-codebase", async () => {
-      // Embed + upsert files into Pinecone
+      // Embed + store files in PostgreSQL (and optionally Pinecone)
     })
   }
 )`}

@@ -44,9 +44,9 @@ const features = [
   },
   {
     icon: Users,
-    title: "Team collaboration",
+    title: "Repository context",
     description:
-      "Share review insights across your team and keep everyone aligned on code quality.",
+      "Ground each review in related source files instead of analyzing the diff in isolation.",
   },
   {
     icon: Shield,
@@ -56,9 +56,9 @@ const features = [
   },
   {
     icon: Zap,
-    title: "Instant suggestions",
+    title: "Codebase chat",
     description:
-      "Actionable fix recommendations you can apply directly from the review panel.",
+      "Ask repository-specific questions and inspect the source files used for each answer.",
   },
 ]
 
@@ -76,7 +76,7 @@ const steps = [
   {
     step: "03",
     title: "Review with AI",
-    description: "Get detailed feedback, bug reports, and suggestions in seconds.",
+    description: "Inspect persisted risk scores, findings, and source-grounded suggestions.",
   },
 ]
 
@@ -197,12 +197,10 @@ function ReviewPreview() {
       <div className="flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-950 px-4 py-2.5">
         <div className="flex items-center gap-1.5">
           <Sparkles className="size-3.5 text-neutral-500" />
-          <span className="text-[11px] text-neutral-500">Powered by Gemini 2.0 Flash + RAG</span>
+          <span className="text-[11px] text-neutral-500">Powered by Gemini 3.6 Flash + RAG</span>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-[11px] text-neutral-600">3 issues</span>
-          <span className="font-mono text-[11px] text-neutral-700">·</span>
-          <span className="text-[11px] text-neutral-600">~18s</span>
+          <span className="text-[11px] text-neutral-600">Example review output</span>
         </div>
       </div>
 
@@ -238,7 +236,7 @@ export function Homepage({ isAuthenticated }: HomepageProps) {
 
                 <p className="max-w-md text-base leading-relaxed text-neutral-400">
                   codeSentinel automatically reviews pull requests, detects bugs, and suggests
-                  actionable fixes directly inside GitHub — before bugs hit production.
+                  actionable findings in a repository-aware review dashboard.
                 </p>
 
                 <div className="flex flex-wrap items-center gap-3">
@@ -307,7 +305,7 @@ export function Homepage({ isAuthenticated }: HomepageProps) {
             <FadeIn>
               <div className="max-w-2xl mb-16">
                 <h2 className="text-3xl font-bold tracking-[-0.03em] text-white md:text-4xl">
-                  Up and running in seconds.
+                  A clear three-step workflow.
                 </h2>
               </div>
             </FadeIn>
@@ -341,7 +339,7 @@ export function Homepage({ isAuthenticated }: HomepageProps) {
                   Ship high-quality code today.
                 </h2>
                 <p className="text-base leading-relaxed text-neutral-400">
-                  Integrate codeSentinel in seconds to start catching bugs early and automating
+                  Connect codeSentinel to start catching bugs early and automating
                   your pull request reviews.
                 </p>
                 <div className="pt-4 flex justify-center gap-3">
@@ -372,12 +370,6 @@ export function Homepage({ isAuthenticated }: HomepageProps) {
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 py-8 text-sm text-neutral-500 md:flex-row md:px-10">
           <p>© {new Date().getFullYear()} codeSentinel</p>
           <div className="flex items-center gap-8">
-            <Link href="#" className="transition-colors hover:text-white">
-              Terms
-            </Link>
-            <Link href="#" className="transition-colors hover:text-white">
-              Privacy
-            </Link>
             <Link href="/docs" className="transition-colors hover:text-white">
               Docs
             </Link>

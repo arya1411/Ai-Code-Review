@@ -1,6 +1,7 @@
 import {betterAuth} from "better-auth"
 import {prismaAdapter}  from "better-auth/adapters/prisma";
 import prisma from "./db";
+import { env } from "./env";
 
 
 export const auth = betterAuth({
@@ -9,12 +10,12 @@ export const auth = betterAuth({
     }),
     socialProviders:{
         github:{
-            clientId:process.env.GITHUB_CLIENT_ID!,
-            clientSecret:process.env.GITHUB_CLIENT_SECRET!,
+            clientId: env.GITHUB_CLIENT_ID,
+            clientSecret: env.GITHUB_CLIENT_SECRET,
             scope:["repo"]
         }
     },
-    trustedOrigins: process.env.BETTER_AUTH_TRUSTED_ORIGINS
-        ? process.env.BETTER_AUTH_TRUSTED_ORIGINS.split(",")
+    trustedOrigins: env.BETTER_AUTH_TRUSTED_ORIGINS
+        ? env.BETTER_AUTH_TRUSTED_ORIGINS.split(",").map((origin) => origin.trim()).filter(Boolean)
         : [],
 });

@@ -136,6 +136,9 @@ export async function disconnectRepository(repositoryId: string) {
             await deleteWebhook(repository.owner, repository.name);
         }
 
+        const { deleteCodeBaseIndex } = await import("@/module/ai/lib/rag");
+        await deleteCodeBaseIndex(`${session.user.id}:${repository.owner}/${repository.name}`);
+
         await prisma.repository.delete({
             where: { id: repositoryId }
         })

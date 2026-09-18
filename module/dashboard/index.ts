@@ -7,6 +7,7 @@ import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { Octokit } from "octokit"
 import { formatDistanceToNow } from "date-fns"
+import prisma from "@/lib/db"
 
 
 export async function getContributionStats(){
@@ -92,8 +93,15 @@ export async function getDashboardStats() {
 
         const { data: user } = await octokit.rest.users.getAuthenticated()
 
-        // Get actual total repos count dynamically
-        const totalRepos = (user.public_repos || 0) + (user.total_private_repos || 0)
+        const [connectedRepositories, aiReviews] = await Promise.all([
+            prisma.repository.count({ where: { userId: session.user.id } }),
+            prisma.review.count({
+                where: {
+                    repository: { userId: session.user.id },
+                    status: "COMPLETED",
+                },
+            }),
+        ])
 
         const calender = await fetchUserContribution(token, user.login)
         const totalCommits = calender?.totalContributions || 0
@@ -118,18 +126,6 @@ export async function getDashboardStats() {
             }
         })
 
-        // Fetch contribution counts for the last 30 days dynamically
-        const allDays = (calender?.weeks ?? []).flatMap(w => w.contributionDays);
-        const last30Days = allDays.slice(-30);
-        const maxCount = Math.max(...last30Days.map(d => d.contributionCount), 1);
-        const contributionHeights = last30Days.length > 0
-            ? last30Days.map(d => {
-                const count = d.contributionCount || 0;
-                if (count === 0) return 10;
-                return Math.min(100, Math.round((count / maxCount) * 90) + 10);
-            })
-            : [45, 60, 30, 80, 50, 75, 40, 90, 65, 35, 70, 85, 25, 60, 55, 30, 80, 45, 75, 50, 90, 40, 65, 35, 70, 85, 25, 60, 55, 30];
-
         const { data: prs } = await octokit.rest.search.issuesAndPullRequests({
             q: `author:${user.login} type:pr`,
             per_page: 1
@@ -138,21 +134,21 @@ export async function getDashboardStats() {
         const totalPrs = prs.total_count
 
         return {
-            totalRepos,
+            connectedRepositories,
+            aiReviews,
             totalCommits,
             totalPrs,
             recentActivity,
-            contributionHeights
         }
 
     } catch (error) {
         console.error("Error fetching dashboard stats:", error);
         return {
-            totalRepos: 0,
+            connectedRepositories: 0,
+            aiReviews: 0,
             totalCommits: 0,
             totalPrs: 0,
             recentActivity: [],
-            contributionHeights: [45, 60, 30, 80, 50, 75, 40, 90, 65, 35, 70, 85, 25, 60, 55, 30, 80, 45, 75, 50, 90, 40, 65, 35, 70, 85, 25, 60, 55, 30]
         }
     }
 }

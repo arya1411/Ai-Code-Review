@@ -1,6 +1,7 @@
 import {Inngest} from "inngest"
+import { env } from "@/lib/env"
 
 export const inngest = new Inngest({
   id: "code_review",
-  isDev: process.env.INNGEST_DEV === "1",
+  isDev: env.INNGEST_DEV === "1",
 });

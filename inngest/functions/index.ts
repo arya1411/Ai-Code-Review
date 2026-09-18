@@ -1,6 +1,6 @@
 import { inngest } from '../client';
 import prisma from '@/lib/db';
-import { getRepoFileContent } from '@/module/github/lib/github';
+import { getRepoSnapshot } from '@/module/github/lib/github';
 import { indexCodeBase } from '@/module/ai/lib/rag';
 
 export const indexRepo = inngest.createFunction(
@@ -14,26 +14,74 @@ export const indexRepo = inngest.createFunction(
   async ({ event, step }) => {
     const { owner, repo, userId } = event.data;
 
-    const files = await step.run("fetch-files", async () => {
-      const account = await prisma.account.findFirst({
-        where: {
-          userId: userId,
-          providerId: "github",
-        },
+    const repository = await step.run("mark-indexing", async () => {
+      const connectedRepository = await prisma.repository.findFirst({
+        where: { userId, owner, name: repo },
+        select: { id: true },
       });
 
-      if (!account?.accessToken) {
-        throw new Error("No Github Access Token Found");
+      if (!connectedRepository) {
+        throw new Error("Connected repository not found");
       }
 
-      return await getRepoFileContent(account.accessToken, owner, repo);
+      return prisma.repository.update({
+        where: { id: connectedRepository.id },
+        data: { indexStatus: "INDEXING", indexError: null },
+        select: { id: true },
+      });
     });
 
-    await step.run("index-codebase", async () => {
-      await indexCodeBase(`${userId}:${owner}/${repo}`, files);
-    });
+    try {
+      const indexResult = await step.run("fetch-and-index", async () => {
+        const account = await prisma.account.findFirst({
+          where: {
+            userId: userId,
+            providerId: "github",
+          },
+        });
 
+        if (!account?.accessToken) {
+          throw new Error("No Github Access Token Found");
+        }
 
-    return {success : true , indexFiles:files.length}
+        const snapshot = await getRepoSnapshot(account.accessToken, owner, repo);
+
+        if (snapshot.files.length === 0) {
+          throw new Error("No indexable files were found in the repository");
+        }
+
+        const result = await indexCodeBase(`${userId}:${owner}/${repo}`, snapshot.files);
+        return {
+          fileCount: snapshot.files.length,
+          commitSha: snapshot.commitSha,
+          ...result,
+        };
+      });
+
+      await step.run("mark-ready", async () => {
+        await prisma.repository.update({
+          where: { id: repository.id },
+          data: {
+            indexStatus: "READY",
+            indexedAt: new Date(),
+            indexedCommitSha: indexResult.commitSha,
+            indexError: null,
+          },
+        });
+      });
+
+      return { success: true, ...indexResult };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Repository indexing failed";
+
+      await step.run("mark-failed", async () => {
+        await prisma.repository.update({
+          where: { id: repository.id },
+          data: { indexStatus: "FAILED", indexError: message.slice(0, 500) },
+        });
+      });
+
+      throw error;
+    }
   }
 );

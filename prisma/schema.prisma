@@ -13,13 +13,13 @@ datasource db {
 }
 
 model User {
-  id            String    @id
+  id            String       @id
   name          String
   email         String
-  emailVerified Boolean   @default(false)
+  emailVerified Boolean      @default(false)
   image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
   sessions      Session[]
   accounts      Account[]
   repositories  Repository[]
@@ -28,25 +28,113 @@ model User {
   @@map("user")
 }
 
-
-
 model Repository {
-  id String @id @default(cuid())
-  githubId BigInt
-  name String
-  owner String
-  fullName String
-  url String
-  userId String
-  user User @relation(fields: [userId] ,  references: [id] , onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id               String      @id @default(cuid())
+  githubId         BigInt
+  name             String
+  owner            String
+  fullName         String
+  url              String
+  userId           String
+  user             User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  indexStatus      IndexStatus @default(NOT_INDEXED)
+  indexedAt        DateTime?
+  indexedCommitSha String?
+  indexError       String?
+  reviews          Review[]
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
 
-  @@index([userId])
   @@unique([userId, githubId])
+  @@index([userId])
   @@map("repository")
+}
 
-  }
+model Review {
+  id                  String       @id @default(cuid())
+  repositoryId        String
+  repository          Repository   @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  githubPullRequestId BigInt
+  pullRequestNumber   Int
+  title               String
+  author              String?
+  url                 String
+  headSha             String
+  baseSha             String?
+  status              ReviewStatus @default(QUEUED)
+  riskLevel           RiskLevel?
+  riskScore           Int?
+  summary             String?
+  reasons             Json?
+  error               String?
+  completedAt         DateTime?
+  findings            Finding[]
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  @@unique([repositoryId, githubPullRequestId, headSha])
+  @@index([repositoryId, createdAt])
+  @@index([status])
+  @@map("review")
+}
+
+model Finding {
+  id         String   @id @default(cuid())
+  reviewId   String
+  review     Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  severity   Severity
+  category   String
+  filePath   String
+  line       Int?
+  message    String
+  suggestion String?
+  createdAt  DateTime @default(now())
+
+  @@index([reviewId])
+  @@map("finding")
+}
+
+model RepositoryCodeChunk {
+  id         String   @id
+  repoKey    String
+  path       String
+  chunkIndex Int
+  content    String
+  embedding  Json
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([repoKey])
+  @@map("repository_code_chunk")
+}
+
+enum IndexStatus {
+  NOT_INDEXED
+  INDEXING
+  READY
+  FAILED
+}
+
+enum ReviewStatus {
+  QUEUED
+  ANALYZING
+  COMPLETED
+  FAILED
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum Severity {
+  INFO
+  LOW
+  MEDIUM
+  HIGH
+}
+
 model Session {
   id        String   @id
   expiresAt DateTime

@@ -56,20 +56,16 @@ export default function MonthlyActivityChart() {
                         }}
                         cursor={{ fill: "rgba(255,255,255,0.03)" }}
                     />
-                    <Bar dataKey="commits" name="Commits" fill="#3b82f6" radius={[3, 3, 0, 0]} />
+                    <Bar dataKey="contributions" name="Contributions" fill="#3b82f6" radius={[3, 3, 0, 0]} />
                     <Bar dataKey="prs" name="Pull Requests" fill="#8b5cf6" radius={[3, 3, 0, 0]} />
-                    <Bar dataKey="reviews" name="Reviews" fill="#10b981" radius={[3, 3, 0, 0]} />
                 </BarChart>
             </ResponsiveContainer>
             <div className="flex items-center gap-4 mt-3 justify-center">
                 <span className="flex items-center gap-1.5 text-xs text-neutral-400">
-                    <span className="size-2 rounded-full bg-blue-500 inline-block" /> Commits
+                    <span className="size-2 rounded-full bg-blue-500 inline-block" /> Contributions
                 </span>
                 <span className="flex items-center gap-1.5 text-xs text-neutral-400">
                     <span className="size-2 rounded-full bg-violet-500 inline-block" /> Pull Requests
-                </span>
-                <span className="flex items-center gap-1.5 text-xs text-neutral-400">
-                    <span className="size-2 rounded-full bg-emerald-500 inline-block" /> Reviews
                 </span>
             </div>
         </div>

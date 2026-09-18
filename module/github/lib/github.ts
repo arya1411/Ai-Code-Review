@@ -4,6 +4,8 @@ import {Octokit} from "octokit"
 import { auth } from "@/lib/auth"
 import prisma from "@/lib/db"
 import { headers } from "next/headers"
+import { env } from "@/lib/env"
+import { isIndexableRepositoryFile } from "@/module/github/lib/repository-files"
 
 
 
@@ -125,7 +127,7 @@ export async function getMonthlyActivity(){
         }
 
         const monthlyData :{
-            [key : string] : {commits : number; prs: number ; reviews:number}
+            [key : string] : {contributions : number; prs: number}
         } = {}
 
         const monthNames = [
@@ -137,7 +139,7 @@ export async function getMonthlyActivity(){
         for(let i = 5; i >= 0; i--){
             const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
             const monthKey = monthNames[date.getMonth()];
-            monthlyData[monthKey] = {commits: 0, prs: 0, reviews: 0};
+            monthlyData[monthKey] = {contributions: 0, prs: 0};
         }
 
         calender.weeks.forEach((week) => {
@@ -145,7 +147,7 @@ export async function getMonthlyActivity(){
                 const date = new Date(day.date);
                 const monthKey = monthNames[date.getMonth()];
                 if(monthlyData[monthKey]){
-                    monthlyData[monthKey].commits += day.contributionCount;
+                    monthlyData[monthKey].contributions += day.contributionCount;
                 }
             })
         })
@@ -163,8 +165,6 @@ export async function getMonthlyActivity(){
             const monthKey = monthNames[date.getMonth()];
             if(monthlyData[monthKey]){
                 monthlyData[monthKey].prs += 1;
-                // Count PRs as reviews (real data — no fake generation)
-                monthlyData[monthKey].reviews += 1;
             }
         });
 
@@ -180,23 +180,13 @@ export async function getMonthlyActivity(){
 
 
 const getWebhookUrl = () => {
-    const baseUrl = process.env.APP_BASE_URL ?? process.env.NEXT_PUBLIC_APP_BASE_URL;
-
-    if (!baseUrl) {
-        throw new Error("APP_BASE_URL or NEXT_PUBLIC_APP_BASE_URL must be configured");
-    }
+    const baseUrl = env.APP_BASE_URL ?? env.NEXT_PUBLIC_APP_BASE_URL!;
 
     return `${baseUrl.replace(/\/$/, "")}/api/webhooks/github`;
 }
 
 const getWebhookSecret = () => {
-    const secret = process.env.GITHUB_WEBHOOK_SECRET;
-
-    if (!secret) {
-        throw new Error("GITHUB_WEBHOOK_SECRET must be configured");
-    }
-
-    return secret;
+    return env.GITHUB_WEBHOOK_SECRET;
 }
 
 export const createWebHook = async (owner : string , repo : string, expectedGithubId?: number) => {
@@ -275,7 +265,19 @@ export const deleteWebhook = async (owner : string , repo : string) => {
 
 }
 
-export const getRepoFileContent = async (token: string, owner: string, repo: string) => {
+const MAX_REPOSITORY_FILES = 100;
+const FILE_FETCH_CONCURRENCY = 10;
+
+export interface RepositorySnapshot {
+    files: { path: string; content: string }[];
+    commitSha: string | null;
+}
+
+export const getRepoSnapshot = async (
+    token: string,
+    owner: string,
+    repo: string,
+): Promise<RepositorySnapshot> => {
     const octokit = new Octokit({ auth: token });
     try {
         const { data: repoInfo } = await octokit.rest.repos.get({
@@ -285,51 +287,48 @@ export const getRepoFileContent = async (token: string, owner: string, repo: str
 
         const defaultBranch = repoInfo.default_branch;
 
-        const { data: treeData } = await octokit.rest.git.getTree({
+        const [{ data: branch }, { data: treeData }] = await Promise.all([
+            octokit.rest.repos.getBranch({ owner, repo, branch: defaultBranch }),
+            octokit.rest.git.getTree({
             owner,
             repo,
             tree_sha: defaultBranch,
             recursive: "true",
-        });
+            }),
+        ]);
 
         const files: { path: string; content: string }[] = [];
-        const ignoredExtensions = [
-            ".png", ".jpg", ".jpeg", ".gif", ".ico", ".svg", ".zip", ".tar", ".gz",
-            ".mp4", ".mp3", ".wav", ".pdf", ".woff", ".woff2", ".ttf", ".eot",
-            ".exe", ".bin", ".lock", "-lock.json", ".map"
-        ];
-        const ignoredDirs = ["node_modules", ".git", ".next", "dist", "build"];
+        const filteredItems = treeData.tree
+            .filter(isIndexableRepositoryFile)
+            .slice(0, MAX_REPOSITORY_FILES);
 
-        const filteredItems = treeData.tree.filter(item => {
-            if (item.type !== "blob" || !item.path) return false;
-            const isIgnored = ignoredDirs.some(dir => item.path!.startsWith(dir) || item.path!.includes(`/${dir}/`)) ||
-                              ignoredExtensions.some(ext => item.path!.endsWith(ext));
-            return !isIgnored;
-        }).slice(0, 100);
-
-        for (const item of filteredItems) {
-            try {
-                const { data } = await octokit.rest.repos.getContent({
+        for (let offset = 0; offset < filteredItems.length; offset += FILE_FETCH_CONCURRENCY) {
+            const batch = filteredItems.slice(offset, offset + FILE_FETCH_CONCURRENCY);
+            const results = await Promise.allSettled(batch.map(async (item) => {
+                const { data } = await octokit.rest.git.getBlob({
                     owner,
                     repo,
-                    path: item.path!,
+                    file_sha: item.sha!,
                 });
+                return {
+                    path: item.path!,
+                    content: Buffer.from(data.content, "base64").toString("utf-8"),
+                };
+            }));
 
-                if (data && !Array.isArray(data) && "content" in data && typeof data.content === "string") {
-                    const decodedContent = Buffer.from(data.content, "base64").toString("utf-8");
-                    files.push({
-                        path: item.path!,
-                        content: decodedContent,
-                    });
-                }
-            } catch (err) {
-                console.error(`Error fetching file content for ${item.path}:`, err);
+            for (const result of results) {
+                if (result.status === "fulfilled") files.push(result.value);
+                else console.error("Error fetching repository file:", result.reason);
             }
         }
 
-        return files;
+        return { files, commitSha: branch.commit.sha };
     } catch (error) {
         console.error("Error getting repository file content:", error);
-        return [];
+        return { files: [], commitSha: null };
     }
+}
+
+export const getRepoFileContent = async (token: string, owner: string, repo: string) => {
+    return (await getRepoSnapshot(token, owner, repo)).files;
 }

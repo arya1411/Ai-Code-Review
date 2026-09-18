@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { createWebHook, deleteWebhook, getRepositories } from "../github/lib/github"
 import { inngest } from "@/inngest/client"
+import { revalidatePath } from "next/cache"
 
 export const fetchRepositories = async(page:number = 1 , perPage:number = 10) => {
     const session = await auth.api.getSession({
@@ -25,13 +26,48 @@ export const fetchRepositories = async(page:number = 1 , perPage:number = 10) =>
     });
 
 
-    const connectedRepoIds = new Set(dbRepos.map(repo => Number(repo.githubId)))
+    const connectedRepos = new Map(dbRepos.map((repo) => [Number(repo.githubId), repo]))
 
-    return githubRepos.map((repo : Record<string, unknown> & { id: number | string }) => ({
-        ...repo,
-        isConnected:connectedRepoIds.has(Number(repo.id))
-    }))
+    return githubRepos.map((repo : Record<string, unknown> & { id: number | string }) => {
+        const connectedRepository = connectedRepos.get(Number(repo.id))
+        return {
+            ...repo,
+            isConnected: Boolean(connectedRepository),
+            connectedRepositoryId: connectedRepository?.id,
+            indexStatus: connectedRepository?.indexStatus,
+        }
+    })
  
+}
+
+export const reindexRepository = async (repositoryId: string) => {
+    const session = await auth.api.getSession({ headers: await headers() })
+    if (!session?.user) throw new Error("Unauthorized")
+
+    const repository = await prisma.repository.findFirst({
+        where: { id: repositoryId, userId: session.user.id },
+        select: { id: true, owner: true, name: true },
+    })
+
+    if (!repository) throw new Error("Repository not found or access denied")
+
+    await inngest.send({
+        name: "repository.sync",
+        data: {
+            owner: repository.owner,
+            repo: repository.name,
+            userId: session.user.id,
+        },
+    })
+
+    await prisma.repository.update({
+        where: { id: repository.id },
+        data: { indexStatus: "INDEXING", indexError: null },
+    })
+
+    revalidatePath("/repositories")
+    revalidatePath("/dashboard/chat")
+    return { success: true }
 }
 
 
@@ -125,6 +161,9 @@ export interface ConnectedRepo {
     owner: string
     fullName: string
     url: string
+    indexStatus: "NOT_INDEXED" | "INDEXING" | "READY" | "FAILED"
+    indexError: string | null
+    indexedAt: Date | null
     createdAt: Date
 }
 
@@ -144,6 +183,9 @@ export async function getConnectedRepositories(): Promise<ConnectedRepo[]> {
             owner: true,
             fullName: true,
             url: true,
+            indexStatus: true,
+            indexError: true,
+            indexedAt: true,
             createdAt: true,
         },
     })

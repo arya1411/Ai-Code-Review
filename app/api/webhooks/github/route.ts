@@ -1,7 +1,9 @@
 import { NextResponse, NextRequest } from "next/server";
-import { createHmac, randomUUID, timingSafeEqual } from "crypto";
+import { randomUUID } from "crypto";
 import prisma from "@/lib/db";
 import { inngest } from "@/inngest/client";
+import { env } from "@/lib/env";
+import { verifyGitHubWebhookSignature } from "@/lib/github-webhook";
 
 interface GithubRepositoryPayload {
     id?: number;
@@ -12,34 +14,27 @@ interface GithubRepositoryPayload {
 interface GithubWebhookPayload {
     action?: string;
     repository?: GithubRepositoryPayload;
-}
-
-async function verifyGithubSignature(req: NextRequest, rawBody: string): Promise<boolean> {
-    const secret = process.env.GITHUB_WEBHOOK_SECRET;
-    if (!secret) {
-        return false;
-    }
-
-    const signature = req.headers.get("x-hub-signature-256");
-    if (!signature) return false;
-
-    if (!signature.startsWith("sha256=")) return false;
-
-    const expected = Buffer.from(createHmac("sha256", secret).update(rawBody).digest("hex"), "hex");
-    const received = Buffer.from(signature.slice("sha256=".length), "hex");
-
-    try {
-        return received.length === expected.length && timingSafeEqual(received, expected);
-    } catch {
-        return false;
-    }
+    pull_request?: {
+        id?: number;
+        number?: number;
+        title?: string;
+        html_url?: string;
+        draft?: boolean;
+        user?: { login?: string };
+        head?: { sha?: string };
+        base?: { sha?: string };
+    };
 }
 
 export async function POST(req: NextRequest) {
     try {
         const rawBody = await req.text();
 
-        const isValid = await verifyGithubSignature(req, rawBody);
+        const isValid = verifyGitHubWebhookSignature(
+            rawBody,
+            req.headers.get("x-hub-signature-256"),
+            env.GITHUB_WEBHOOK_SECRET,
+        );
         if (!isValid) {
             return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
         }
@@ -76,6 +71,86 @@ export async function POST(req: NextRequest) {
             ));
 
             return NextResponse.json({ message: "Repository sync queued" }, { status: 202 });
+        }
+
+        if (event === "pull_request") {
+            const reviewableActions = new Set(["opened", "reopened", "synchronize", "ready_for_review"]);
+            if (!body.action || !reviewableActions.has(body.action)) {
+                return NextResponse.json({ message: "Pull request action ignored" }, { status: 202 });
+            }
+
+            const repository = body.repository;
+            const pullRequest = body.pull_request;
+            if (
+                !repository?.id ||
+                !repository.name ||
+                !repository.owner?.login ||
+                !pullRequest?.id ||
+                !pullRequest.number ||
+                !pullRequest.title ||
+                !pullRequest.html_url ||
+                !pullRequest.head?.sha
+            ) {
+                return NextResponse.json({ error: "Invalid pull request payload" }, { status: 400 });
+            }
+
+            if (pullRequest.draft && body.action !== "ready_for_review") {
+                return NextResponse.json({ message: "Draft pull request ignored" }, { status: 202 });
+            }
+
+            const connections = await prisma.repository.findMany({
+                where: { githubId: BigInt(repository.id) },
+                select: { id: true, userId: true },
+            });
+            const deliveryId = req.headers.get("x-github-delivery") ?? randomUUID();
+
+            await Promise.all(connections.map(async (connection) => {
+                const review = await prisma.review.upsert({
+                    where: {
+                        repositoryId_githubPullRequestId_headSha: {
+                            repositoryId: connection.id,
+                            githubPullRequestId: BigInt(pullRequest.id!),
+                            headSha: pullRequest.head!.sha!,
+                        },
+                    },
+                    create: {
+                        repositoryId: connection.id,
+                        githubPullRequestId: BigInt(pullRequest.id!),
+                        pullRequestNumber: pullRequest.number!,
+                        title: pullRequest.title!,
+                        author: pullRequest.user?.login,
+                        url: pullRequest.html_url!,
+                        headSha: pullRequest.head!.sha!,
+                        baseSha: pullRequest.base?.sha,
+                    },
+                    update: {
+                        title: pullRequest.title!,
+                        author: pullRequest.user?.login,
+                        url: pullRequest.html_url!,
+                        baseSha: pullRequest.base?.sha,
+                        status: "QUEUED",
+                        error: null,
+                    },
+                    select: { id: true },
+                });
+
+                await inngest.send({
+                    id: `${deliveryId}:${connection.id}:review`,
+                    name: "pull-request.review.requested",
+                    data: {
+                        reviewId: review.id,
+                        userId: connection.userId,
+                        owner: repository.owner!.login!,
+                        repo: repository.name!,
+                        pullRequestNumber: pullRequest.number!,
+                    },
+                });
+            }));
+
+            return NextResponse.json({
+                message: "Pull request review queued",
+                connections: connections.length,
+            }, { status: 202 });
         }
 
         return NextResponse.json({ message: "Event accepted", event, action: body.action }, { status: 202 });

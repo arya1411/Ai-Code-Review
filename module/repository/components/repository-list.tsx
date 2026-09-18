@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { FadeIn } from "@/components/ui/fade-in"
-import { ExternalLink, Star, Search, FolderGit2, Loader2, Check, Plus } from 'lucide-react'
+import { ExternalLink, Star, Search, FolderGit2, Loader2, Check, Plus, RefreshCw, CircleAlert } from 'lucide-react'
 import { useRepositories } from '@/module/repository/hooks/use-repository'
-import { useConnectRepository } from '../hooks/use-connect-repository'
+import { useConnectRepository, useReindexRepository } from '../hooks/use-connect-repository'
 
 interface Repository {
   id: number
@@ -20,11 +20,14 @@ interface Repository {
   language: string | null
   topics: string[]
   isConnected?: boolean
+  connectedRepositoryId?: string
+  indexStatus?: "NOT_INDEXED" | "INDEXING" | "READY" | "FAILED"
 }
 
 export function RepositoryList() {
   const [searchQuery, setSearchQuery] = useState("")
   const [localConnectingId, setLocalConnectingId] = useState<number | null>(null)
+  const [localIndexingId, setLocalIndexingId] = useState<number | null>(null)
   const {
     data,
     isLoading,
@@ -39,6 +42,10 @@ export function RepositoryList() {
     onSuccess: () => setLocalConnectingId(null),
     onError: () => setLocalConnectingId(null),
   })
+  const { mutate: reindexRepo } = useReindexRepository({
+    onSuccess: () => setLocalIndexingId(null),
+    onError: () => setLocalIndexingId(null),
+  })
 
   const allRepositories = (data?.pages.flatMap((page: unknown) => page) || []) as Repository[]
 
@@ -49,7 +56,12 @@ export function RepositoryList() {
   )
 
   const handleConnect = (repo : Repository) => {
-    if (repo.isConnected) return
+    if (repo.isConnected) {
+      if (!repo.connectedRepositoryId || repo.indexStatus === "INDEXING") return
+      setLocalIndexingId(repo.id)
+      reindexRepo(repo.connectedRepositoryId)
+      return
+    }
 
     setLocalConnectingId(repo.id)
     connectRepo( {
@@ -156,17 +168,22 @@ export function RepositoryList() {
                           ? "border-neutral-800 bg-neutral-900 text-neutral-300 hover:bg-neutral-800 hover:text-white"
                           : "bg-white text-black hover:bg-neutral-200 font-medium"
                       }
-                      disabled={repo.isConnected || localConnectingId === repo.id}
+                      disabled={localConnectingId === repo.id || localIndexingId === repo.id || repo.indexStatus === "INDEXING"}
                     >
-                      {localConnectingId === repo.id ? (
+                      {localConnectingId === repo.id || localIndexingId === repo.id || repo.indexStatus === "INDEXING" ? (
                         <>
                           <Loader2 className="size-3.5 mr-1 animate-spin" />
-                          Connecting
+                          {repo.isConnected ? "Indexing" : "Connecting"}
+                        </>
+                      ) : repo.indexStatus === "FAILED" ? (
+                        <>
+                          <CircleAlert className="size-3.5 mr-1" />
+                          Retry index
                         </>
                       ) : repo.isConnected ? (
                         <>
-                          <Check className="size-3.5 mr-1" />
-                          Connected
+                          {repo.indexStatus === "READY" ? <RefreshCw className="size-3.5 mr-1" /> : <Check className="size-3.5 mr-1" />}
+                          {repo.indexStatus === "READY" ? "Re-index" : "Start index"}
                         </>
                       ) : (
                         <>

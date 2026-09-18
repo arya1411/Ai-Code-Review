@@ -9,7 +9,40 @@
 * 🟢 You can import this file directly.
 */
 
+export const IndexStatus = {
+  NOT_INDEXED: 'NOT_INDEXED',
+  INDEXING: 'INDEXING',
+  READY: 'READY',
+  FAILED: 'FAILED'
+} as const
+
+export type IndexStatus = (typeof IndexStatus)[keyof typeof IndexStatus]
 
 
-// This file is empty because there are no enums in the schema.
-export {}
+export const ReviewStatus = {
+  QUEUED: 'QUEUED',
+  ANALYZING: 'ANALYZING',
+  COMPLETED: 'COMPLETED',
+  FAILED: 'FAILED'
+} as const
+
+export type ReviewStatus = (typeof ReviewStatus)[keyof typeof ReviewStatus]
+
+
+export const RiskLevel = {
+  LOW: 'LOW',
+  MEDIUM: 'MEDIUM',
+  HIGH: 'HIGH'
+} as const
+
+export type RiskLevel = (typeof RiskLevel)[keyof typeof RiskLevel]
+
+
+export const Severity = {
+  INFO: 'INFO',
+  LOW: 'LOW',
+  MEDIUM: 'MEDIUM',
+  HIGH: 'HIGH'
+} as const
+
+export type Severity = (typeof Severity)[keyof typeof Severity]

@@ -1,7 +1,7 @@
 "use client"
 
 import {useMutation , useQueryClient} from "@tanstack/react-query"
-import { connectRepository } from ".."
+import { connectRepository, reindexRepository } from ".."
 import {toast} from 'sonner'
 
 interface UseConnectRepositoryOptions {
@@ -29,5 +29,23 @@ export const useConnectRepository = (options?: UseConnectRepositoryOptions) => {
             options?.onError?.()
         },
         
+    })
+}
+
+export const useReindexRepository = (options?: UseConnectRepositoryOptions) => {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: reindexRepository,
+        onSuccess: () => {
+            toast.success("Repository indexing queued")
+            queryClient.invalidateQueries({ queryKey: ["repositories"] })
+            options?.onSuccess?.()
+        },
+        onError: (error) => {
+            toast.error("Failed to queue repository indexing")
+            console.error(error)
+            options?.onError?.()
+        },
     })
 }

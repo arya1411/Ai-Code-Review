@@ -6,10 +6,6 @@ import { Button } from "@/components/ui/button"
 import {
   GitPullRequest,
   ArrowRight,
-  Settings,
-  Zap,
-  CheckCircle2,
-  AlertCircle,
 } from "lucide-react"
 import Link from "next/link"
 import { getDashboardStats } from "@/module/dashboard"
@@ -32,9 +28,7 @@ function PanelHeader({
       <span className="text-[11px] font-semibold uppercase tracking-widest text-neutral-600">
         {title}
       </span>
-      {action ?? (
-        <Settings className="size-3.5 text-neutral-700 hover:text-neutral-500 cursor-pointer transition-colors" />
-      )}
+      {action}
     </div>
   )
 }
@@ -88,7 +82,7 @@ export default async function DashboardPage() {
                 href={
                   i === 0 ? "/dashboard" :
                   i === 1 ? "/reviews" :
-                  i === 2 ? "/dashboard/repository" :
+                  i === 2 ? "/repositories" :
                   "/dashboard"
                 }
                 className={`text-[11px] font-semibold tracking-widest transition-colors ${
@@ -121,25 +115,24 @@ export default async function DashboardPage() {
                   <PanelHeader title="Daily" />
 
                   <StatRow
-                    label="Total Repositories"
-                    sub="GitHub repos connected"
-                    value={stats.totalRepos}
+                    label="Connected Repositories"
+                    sub="Repositories indexed by codeSentinel"
+                    value={stats.connectedRepositories}
                   />
                   <StatRow
-                    label="Total Commits"
-                    sub="Contributions this year"
+                    label="Total Contributions"
+                    sub="GitHub contributions this year"
                     value={stats.totalCommits.toLocaleString()}
                   />
                   <StatRow
                     label="Pull Requests"
-                    sub="PRs reviewed by AI"
+                    sub="PRs authored on GitHub"
                     value={stats.totalPrs}
                   />
                   <StatRow
                     label="AI Reviews"
-                    sub="Auto-generated reviews"
-                    value="342"
-                    trend="↑ Powered by Gemini 2.0 Flash"
+                    sub="Completed by codeSentinel"
+                    value={stats.aiReviews}
                   />
                 </div>
 
@@ -189,7 +182,7 @@ export default async function DashboardPage() {
                       <GitPullRequest className="size-6 text-neutral-700 mb-3" />
                       <p className="text-xs text-neutral-500">No recent PRs</p>
                       <Button
-                        render={<Link href="/dashboard/repository" />}
+                        render={<Link href="/repositories" />}
                         size="sm"
                         className="mt-3 gap-1 text-[10px] bg-white text-black hover:bg-neutral-200"
                       >
@@ -200,31 +193,8 @@ export default async function DashboardPage() {
                 </div>
               </div>
 
-              {/* ── Ticker strip (like better-auth live events) ── */}
-              <div className="border-y border-neutral-900 bg-neutral-950/40 overflow-hidden h-8 flex items-center">
-                <div className="flex gap-8 animate-[marquee_30s_linear_infinite] whitespace-nowrap px-4">
-                  {[
-                    "PR analysis complete · feat/auth-refresh",
-                    "Webhook received · repo: code_review",
-                    "RAG index updated · 1,240 chunks",
-                    "Security scan passed · no critical issues",
-                    "New commit detected · main branch",
-                    "AI review posted · PR #312",
-                    "PR analysis complete · feat/auth-refresh",
-                    "Webhook received · repo: code_review",
-                    "RAG index updated · 1,240 chunks",
-                    "Security scan passed · no critical issues",
-                  ].map((msg, i) => (
-                    <span key={i} className="text-[10px] text-neutral-600 shrink-0">
-                      <span className="text-neutral-800 mr-2">·</span>
-                      {msg}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              {/* ── BOTTOM ROW: Contribution graph | Commits | Insights ── */}
-              <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr_260px] divide-y lg:divide-y-0 lg:divide-x divide-neutral-900">
+              {/* ── BOTTOM ROW: Monthly activity | Commits ── */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-neutral-900 border-t border-neutral-900">
 
                 {/* Monthly Activity chart */}
                 <div className="px-5 py-4">
@@ -254,84 +224,6 @@ export default async function DashboardPage() {
                   </Suspense>
                 </div>
 
-                {/* Insights panel */}
-                <div className="px-5 py-4">
-                  <PanelHeader
-                    title="Insights"
-                    action={<span className="text-[10px] text-neutral-700">health, version, and config</span>}
-                  />
-
-                  <div className="space-y-4">
-                    {/* Health */}
-                    <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-widest text-neutral-700 mb-2">
-                        Health
-                      </p>
-                      <div className="flex items-center gap-2">
-                        <CheckCircle2 className="size-3.5 text-green-500" />
-                        <span className="text-sm font-semibold text-green-400">Healthy</span>
-                      </div>
-                      <p className="text-[10px] text-neutral-600 mt-0.5">All systems operational</p>
-                    </div>
-
-                    {/* Stack */}
-                    <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-widest text-neutral-700 mb-2">
-                        Stack
-                      </p>
-                      <div className="space-y-1.5">
-                        {[
-                          { label: "Next.js", value: "16.2.10" },
-                          { label: "Prisma", value: "7.x" },
-                          { label: "Inngest", value: "latest" },
-                          { label: "Gemini", value: "2.0 Flash" },
-                          { label: "Pinecone", value: "Vector DB" },
-                        ].map((item) => (
-                          <div key={item.label} className="flex items-center justify-between">
-                            <span className="text-[11px] text-neutral-500">{item.label}</span>
-                            <span className="font-mono text-[10px] text-neutral-700">{item.value}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Webhook status */}
-                    <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-widest text-neutral-700 mb-2">
-                        Webhooks
-                      </p>
-                      <div className="flex items-start gap-1.5">
-                        <Zap className="size-3 text-amber-500 mt-0.5 shrink-0" />
-                        <p className="text-[10px] text-neutral-500 leading-relaxed">
-                          GitHub webhook active at{" "}
-                          <span className="font-mono text-neutral-400">/api/webhooks/github</span>
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* CTA */}
-                    <div className="rounded-lg border border-neutral-800 bg-neutral-900/40 p-3">
-                      <div className="flex items-start gap-2">
-                        <AlertCircle className="size-3.5 text-neutral-500 mt-0.5 shrink-0" />
-                        <div>
-                          <p className="text-[11px] font-medium text-neutral-300">
-                            Boost accuracy with RAG
-                          </p>
-                          <p className="mt-0.5 text-[10px] text-neutral-600 leading-relaxed">
-                            Connect more repos to expand codebase indexing coverage.
-                          </p>
-                          <Link
-                            href="/dashboard/repository"
-                            className="mt-2 inline-flex items-center gap-1 text-[10px] text-neutral-400 hover:text-white transition-colors"
-                          >
-                            Manage repos <ArrowRight className="size-2.5" />
-                          </Link>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
               </div>
 
             </FadeIn>
@@ -340,13 +232,6 @@ export default async function DashboardPage() {
         </div>
       </DashboardShell>
 
-      {/* marquee keyframe */}
-      <style>{`
-        @keyframes marquee {
-          from { transform: translateX(0); }
-          to   { transform: translateX(-50%); }
-        }
-      `}</style>
     </AppBackground>
   )
 }

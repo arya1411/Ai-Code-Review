@@ -1,8 +1,8 @@
 import { Pinecone } from "@pinecone-database/pinecone"
+import { env } from "./env"
 
+export const pinecone = env.PINECONE_DB_API_KEY
+    ? new Pinecone({ apiKey: env.PINECONE_DB_API_KEY })
+    : null
 
-export const pinecone = new Pinecone({
-    apiKey:process.env.PINECONE_DB_API_KEY!
-})
-
-export const pineconeIndex = pinecone.index("codesentinal-vector-embeddings")
+export const pineconeIndex = pinecone?.index(env.PINECONE_INDEX) ?? null

@@ -52,6 +52,21 @@ export type User = Prisma.UserModel
  */
 export type Repository = Prisma.RepositoryModel
 /**
+ * Model Review
+ * 
+ */
+export type Review = Prisma.ReviewModel
+/**
+ * Model Finding
+ * 
+ */
+export type Finding = Prisma.FindingModel
+/**
+ * Model RepositoryCodeChunk
+ * 
+ */
+export type RepositoryCodeChunk = Prisma.RepositoryCodeChunkModel
+/**
  * Model Session
  * 
  */

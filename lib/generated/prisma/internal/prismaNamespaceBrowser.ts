@@ -53,6 +53,9 @@ export const AnyNull = runtime.AnyNull
 export const ModelName = {
   User: 'User',
   Repository: 'Repository',
+  Review: 'Review',
+  Finding: 'Finding',
+  RepositoryCodeChunk: 'RepositoryCodeChunk',
   Session: 'Session',
   Account: 'Account',
   Verification: 'Verification'
@@ -95,11 +98,68 @@ export const RepositoryScalarFieldEnum = {
   fullName: 'fullName',
   url: 'url',
   userId: 'userId',
+  indexStatus: 'indexStatus',
+  indexedAt: 'indexedAt',
+  indexedCommitSha: 'indexedCommitSha',
+  indexError: 'indexError',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
 export type RepositoryScalarFieldEnum = (typeof RepositoryScalarFieldEnum)[keyof typeof RepositoryScalarFieldEnum]
+
+
+export const ReviewScalarFieldEnum = {
+  id: 'id',
+  repositoryId: 'repositoryId',
+  githubPullRequestId: 'githubPullRequestId',
+  pullRequestNumber: 'pullRequestNumber',
+  title: 'title',
+  author: 'author',
+  url: 'url',
+  headSha: 'headSha',
+  baseSha: 'baseSha',
+  status: 'status',
+  riskLevel: 'riskLevel',
+  riskScore: 'riskScore',
+  summary: 'summary',
+  reasons: 'reasons',
+  error: 'error',
+  completedAt: 'completedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ReviewScalarFieldEnum = (typeof ReviewScalarFieldEnum)[keyof typeof ReviewScalarFieldEnum]
+
+
+export const FindingScalarFieldEnum = {
+  id: 'id',
+  reviewId: 'reviewId',
+  severity: 'severity',
+  category: 'category',
+  filePath: 'filePath',
+  line: 'line',
+  message: 'message',
+  suggestion: 'suggestion',
+  createdAt: 'createdAt'
+} as const
+
+export type FindingScalarFieldEnum = (typeof FindingScalarFieldEnum)[keyof typeof FindingScalarFieldEnum]
+
+
+export const RepositoryCodeChunkScalarFieldEnum = {
+  id: 'id',
+  repoKey: 'repoKey',
+  path: 'path',
+  chunkIndex: 'chunkIndex',
+  content: 'content',
+  embedding: 'embedding',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type RepositoryCodeChunkScalarFieldEnum = (typeof RepositoryCodeChunkScalarFieldEnum)[keyof typeof RepositoryCodeChunkScalarFieldEnum]
 
 
 export const SessionScalarFieldEnum = {
@@ -155,6 +215,21 @@ export const SortOrder = {
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
 
 
+export const NullableJsonNullValueInput = {
+  DbNull: DbNull,
+  JsonNull: JsonNull
+} as const
+
+export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
+
+
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
+
+
 export const QueryMode = {
   default: 'default',
   insensitive: 'insensitive'
@@ -169,4 +244,13 @@ export const NullsOrder = {
 } as const
 
 export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
+
+
+export const JsonNullValueFilter = {
+  DbNull: DbNull,
+  JsonNull: JsonNull,
+  AnyNull: AnyNull
+} as const
+
+export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
 

@@ -71,8 +71,8 @@ Decided against a single AI provider — using a **job-based routing pattern** (
 | Job | Provider (current pick) | Why |
 |---|---|---|
 | `riskScore` | Groq (Llama 3.3 70B) | Fast, cheap, needs to return quickly on every push |
-| `repoChat` | Google AI Studio (Gemini 2.5 Flash) | Large context window, good for stuffing retrieved chunks |
-| `docsGen` | Google AI Studio (Gemini 2.5 Flash) | Needs to synthesize across many files at once |
+| `repoChat` | Google AI Studio (Gemini 3.6 Flash) | Large context window, good for stuffing retrieved chunks |
+| `docsGen` | Google AI Studio (Gemini 3.6 Flash) | Needs to synthesize across many files at once |
 | `experimental` | OpenRouter (Nemotron 3 Super, free) | Fallback/testing lane — swap in Nemotron, DeepSeek, etc. without code changes |
 
 **Original consideration**: NVIDIA Nemotron 3 family (Nano/Super/Ultra) — free via NVIDIA NIM or OpenRouter. Kept as the `experimental` lane rather than the primary path; NVIDIA's own "Super + Nano deployment pattern" (Super for planning, Nano for execution) is a reasonable model if Nemotron ends up outperforming Groq/Gemini in testing.
