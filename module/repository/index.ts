@@ -6,6 +6,7 @@ import { headers } from "next/headers"
 import { createWebHook, deleteWebhook, getRepositories } from "../github/lib/github"
 import { inngest } from "@/inngest/client"
 import { revalidatePath } from "next/cache"
+import { expireStaleRepositoryIndexes } from "./lib/index-status"
 
 export const fetchRepositories = async(page:number = 1 , perPage:number = 10) => {
     const session = await auth.api.getSession({
@@ -16,6 +17,7 @@ export const fetchRepositories = async(page:number = 1 , perPage:number = 10) =>
         throw new Error("UnAthorized")
     }
 
+    await expireStaleRepositoryIndexes(session.user.id)
 
     const githubRepos = await getRepositories(page , perPage)
 
@@ -182,6 +184,8 @@ export async function getConnectedRepositories(): Promise<ConnectedRepo[]> {
     })
 
     if (!session?.user) throw new Error("Unauthorized")
+
+    await expireStaleRepositoryIndexes(session.user.id)
 
     const repos = await prisma.repository.findMany({
         where: { userId: session.user.id },

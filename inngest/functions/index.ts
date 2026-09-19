@@ -2,6 +2,7 @@ import { inngest } from '../client';
 import prisma from '@/lib/db';
 import { getRepoSnapshot } from '@/module/github/lib/github';
 import { indexCodeBase } from '@/module/ai/lib/rag';
+import { REPOSITORY_INDEX_TIMEOUT_ERROR } from '@/module/repository/lib/index-status';
 
 export const indexRepo = inngest.createFunction(
   {
@@ -9,6 +10,9 @@ export const indexRepo = inngest.createFunction(
     concurrency: {
       limit: 1,
       key: 'event.data.userId + ":" + event.data.owner + "/" + event.data.repo',
+    },
+    timeouts: {
+      finish: "30m",
     },
     triggers: [
       { event: "repository.connected" },
@@ -92,4 +96,45 @@ export const indexRepo = inngest.createFunction(
       throw error;
     }
   }
+);
+
+export const recoverCancelledIndex = inngest.createFunction(
+  {
+    id: "recover-cancelled-index",
+    triggers: [{ event: "inngest/function.cancelled" }],
+  },
+  async ({ event, step }) => {
+    const functionId = event.data.function_id;
+    if (functionId !== "index-repo" && !functionId.endsWith("-index-repo")) {
+      return { ignored: true };
+    }
+
+    const originalEvent = event.data.event as {
+      data?: { owner?: unknown; repo?: unknown; userId?: unknown };
+    };
+    const { owner, repo, userId } = originalEvent.data ?? {};
+
+    if (typeof owner !== "string" || typeof repo !== "string" || typeof userId !== "string") {
+      return { ignored: true };
+    }
+
+    const cancelledAt = new Date(event.ts);
+    const result = await step.run("mark-cancelled-index-failed", () =>
+      prisma.repository.updateMany({
+        where: {
+          userId,
+          owner,
+          name: repo,
+          indexStatus: "INDEXING",
+          updatedAt: { lte: cancelledAt },
+        },
+        data: {
+          indexStatus: "FAILED",
+          indexError: REPOSITORY_INDEX_TIMEOUT_ERROR,
+        },
+      }),
+    );
+
+    return { recovered: result.count };
+  },
 );
