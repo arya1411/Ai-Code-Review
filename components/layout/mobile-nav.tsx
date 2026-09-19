@@ -8,6 +8,7 @@ import {
   Settings,
   FolderGit2,
   MessageSquareCode,
+  Activity,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -29,6 +30,7 @@ export function MobileNav() {
     { label: "Reviews", href: "/reviews", icon: GitPullRequest },
     { label: "Repositories", href: "/repositories", icon: FolderGit2 },
     { label: "Talk", href: "/dashboard/chat", icon: MessageSquareCode },
+    { label: "Health", href: "/health", icon: Activity },
     { label: "Settings", href: "/settings", icon: Settings },
   ]
 
@@ -46,7 +48,7 @@ export function MobileNav() {
             key={item.href}
             href={item.href}
             className={cn(
-              "flex flex-col items-center gap-1 rounded-lg px-3 py-1.5 text-[10px] font-medium transition-colors",
+              "flex flex-col items-center gap-1 rounded-lg px-2 py-1.5 text-[10px] font-medium transition-colors",
               // Active state styling
               isActive
                 ? "text-white"

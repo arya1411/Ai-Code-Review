@@ -8,6 +8,7 @@ import {
   Settings,
   FolderGit2,
   MessageSquareCode,
+  Activity,
 } from "lucide-react"
 import { Logo } from "@/components/brand/logo"
 import { Avatar } from "@/components/ui/avatar"
@@ -36,6 +37,7 @@ const navItems = [
   { label: "Reviews", href: "/reviews", icon: GitPullRequest },
   { label: "Repositories", href: "/repositories", icon: FolderGit2 },
   { label: "Talk with Repo", href: "/dashboard/chat", icon: MessageSquareCode },
+  { label: "Health", href: "/health", icon: Activity },
   { label: "Settings", href: "/settings", icon: Settings },
 ]
 
