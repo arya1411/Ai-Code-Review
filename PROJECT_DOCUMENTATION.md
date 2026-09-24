@@ -18,7 +18,7 @@ This document describes the implemented MVP. For setup, environment variables, v
 4. A user-scoped `Repository` row is created.
 5. A `repository.connected` Inngest event starts indexing.
 6. The indexing function records `INDEXING`, fetches source files, chunks them, generates embeddings, and transactionally replaces that repository's PostgreSQL chunks.
-7. Pinecone is updated on a best-effort basis when configured; PostgreSQL remains the authoritative index so partial Pinecone writes cannot hide valid chunks.
+7. Embeddings are stored in a native PostgreSQL `vector(768)` column.
 8. The repository becomes `READY`; failures are recorded as `FAILED` with an error message.
 
 Push webhooks emit `repository.sync`, which runs the same refresh pipeline. Users can also request a refresh from `/repositories`.
@@ -28,7 +28,7 @@ Push webhooks emit `repository.sync`, which runs the same refresh pipeline. User
 1. `/dashboard/chat` lists only repositories owned by the authenticated database user.
 2. Chat uses an existing vector index when available and can fall back to direct GitHub source retrieval while indexing is unavailable.
 3. `askRepository()` validates ownership again on the server.
-4. The question is embedded and queried against user-scoped vectors in Pinecone when available, then PostgreSQL; direct lexical source selection is the final fallback.
+4. The question is embedded and PostgreSQL performs an exact, user-scoped pgvector cosine search; direct lexical source selection is the fallback when no index exists.
 5. The most relevant chunks and recent browser-session conversation are passed to Gemini 3.6 Flash.
 6. The answer is returned with source-file citations.
 
@@ -43,7 +43,7 @@ Chat messages are intentionally session-local in the MVP.
 5. `pull-request.review.requested` starts a background Inngest function.
 6. The function moves the review through `QUEUED`, `ANALYZING`, and either `COMPLETED` or `FAILED`.
 7. Octokit loads PR metadata and changed-file patches.
-8. The retrieval layer loads related repository chunks from PostgreSQL, uses Pinecone only for legacy indexes without PostgreSQL chunks, and degrades to diff-only analysis if context retrieval fails.
+8. The retrieval layer asks PostgreSQL for the top related chunks through pgvector and degrades to diff-only analysis if context retrieval fails.
 9. Gemini returns schema-validated JSON containing a risk score, risk level, summary, reasons, and findings.
 10. The review and its findings are stored transactionally, displayed on `/reviews`, and published as a create-or-update GitHub PR comment.
 
@@ -113,7 +113,7 @@ Important constraints:
 
 - GitHub API failures do not produce invented dashboard metrics.
 - Empty or failed repository fetches cause the index to enter `FAILED`.
-- Pinecone failures do not fail indexing after PostgreSQL chunks have been stored.
+- Native vector inserts are transactional, so a failed refresh leaves the previous repository index intact.
 - Invalid AI review JSON fails the review rather than persisting guessed output.
 - Failed review and index messages are truncated before storage.
 - A missing vector index makes chat fetch and rank current GitHub files directly.
@@ -129,4 +129,4 @@ npm test
 npm run build
 ```
 
-An actual end-to-end verification additionally requires GitHub OAuth, webhook delivery, Inngest, PostgreSQL, and Gemini credentials. Pinecone is optional. Follow the smoke test in `README.md`.
+An actual end-to-end verification additionally requires GitHub OAuth, webhook delivery, Inngest, PostgreSQL with pgvector, and Gemini credentials. Follow the smoke test in `README.md`.

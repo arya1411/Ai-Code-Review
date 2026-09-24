@@ -29,22 +29,22 @@ model User {
 }
 
 model Repository {
-  id               String      @id @default(cuid())
+  id               String                @id @default(cuid())
   githubId         BigInt
   name             String
   owner            String
   fullName         String
   url              String
   userId           String
-  user             User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  indexStatus      IndexStatus @default(NOT_INDEXED)
+  user             User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  indexStatus      IndexStatus           @default(NOT_INDEXED)
   indexedAt        DateTime?
   indexedCommitSha String?
   indexError       String?
   reviews          Review[]
   codeChunks       RepositoryCodeChunk[]
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
 
   @@unique([userId, githubId])
   @@index([userId])
@@ -96,16 +96,16 @@ model Finding {
 }
 
 model RepositoryCodeChunk {
-  id         String   @id
+  id           String                     @id
   repositoryId String
-  repository Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
-  repoKey    String
-  path       String
-  chunkIndex Int
-  content    String
-  embedding  Json
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  repository   Repository                 @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  repoKey      String
+  path         String
+  chunkIndex   Int
+  content      String
+  embedding    Unsupported("vector(768)")
+  createdAt    DateTime                   @default(now())
+  updatedAt    DateTime                   @updatedAt
 
   @@index([repoKey])
   @@index([repositoryId])

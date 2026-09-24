@@ -106,11 +106,10 @@ interface TechCard {
 const techItems: TechCard[] = [
   { name: "Next.js 16", role: "App framework, API routes, SSR", badge: "Core" },
   { name: "TypeScript", role: "Full-stack type safety", badge: "Core" },
-  { name: "Prisma 7 + PostgreSQL", role: "ORM with Postgres adapter", badge: "Data" },
+  { name: "Prisma 7 + PostgreSQL", role: "ORM and pgvector retrieval", badge: "Data" },
   { name: "better-auth", role: "GitHub OAuth session management", badge: "Auth" },
   { name: "Inngest", role: "Durable background job queue", badge: "Jobs" },
   { name: "Google Gemini 3.6 Flash", role: "LLM powering reviews and chat", badge: "AI" },
-  { name: "Pinecone", role: "Optional vector retrieval accelerator", badge: "AI" },
   { name: "Vercel AI SDK", role: "Streaming AI responses & tooling", badge: "AI" },
   { name: "Octokit", role: "GitHub REST & GraphQL API client", badge: "GitHub" },
   { name: "React Query", role: "Client-side data fetching & cache", badge: "Client" },
@@ -232,8 +231,6 @@ GITHUB_CLIENT_SECRET=...
 GITHUB_WEBHOOK_SECRET=...
 APP_BASE_URL=https://your-public-app.example.com
 GOOGLE_GENERATIVE_AI_API_KEY=...
-# Optional
-PINECONE_DB_API_KEY=...
 INNGEST_SIGNING_KEY=...
 INNGEST_EVENT_KEY=...`}
               />
@@ -303,7 +300,7 @@ npx inngest-cli@latest dev`}
             </p>
             <p>
               <strong className="text-neutral-200">4. The AI agent</strong> fetches the PR diff,
-              retrieves relevant codebase context from PostgreSQL or a legacy Pinecone index, constructs a prompt, and calls Gemini
+              retrieves relevant codebase context through PostgreSQL pgvector, constructs a prompt, and calls Gemini
               to produce a structured review object.
             </p>
             <p>
@@ -439,28 +436,26 @@ if (!timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) {
               the Gemini Embedding API, and transactionally stores user-scoped chunks in PostgreSQL.
             </p>
             <p>
-              At review time, the AI module performs cosine search over the authoritative PostgreSQL
-              vectors, uses Pinecone only for legacy indexes, and appends the top matching chunks to the LLM prompt.
+              At review time, PostgreSQL uses pgvector to perform exact cosine search and returns only
+              the top matching chunks for the LLM prompt.
             </p>
           </div>
 
-          <SubHeading>Optional Pinecone acceleration</SubHeading>
+          <SubHeading>PostgreSQL vector retrieval</SubHeading>
           <CodeBlock
-            language="typescript"
-            code={`// lib/pinecone.ts
-import { Pinecone } from "@pinecone-database/pinecone"
-
-const pinecone = env.PINECONE_DB_API_KEY
-  ? new Pinecone({ apiKey: env.PINECONE_DB_API_KEY })
-  : null
-
-export const index = pinecone?.index(env.PINECONE_INDEX) ?? null`}
+            language="sql"
+            code={`SELECT path, content,
+       1 - (embedding <=> $1::vector(768)) AS score
+FROM repository_code_chunk
+WHERE "repoKey" = $2
+ORDER BY embedding <=> $1::vector(768)
+LIMIT 6;`}
           />
 
           <div className="mt-6">
             <Callout type="tip">
               Every query uses a user-scoped repository key so retrieved chunks cannot cross between
-              connected users&apos; codebases. PostgreSQL works without any Pinecone credential.
+              connected users&apos; codebases. Embeddings remain 768-dimensional to match the database column.
             </Callout>
           </div>
         </section>
@@ -557,7 +552,7 @@ export const indexRepo = inngest.createFunction(
     })
 
     await step.run("index-codebase", async () => {
-      // Embed + store files in PostgreSQL (and optionally Pinecone)
+      // Embed + store files in PostgreSQL as native vectors
     })
   }
 )`}

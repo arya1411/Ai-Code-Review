@@ -6,7 +6,7 @@ const ignoredExtensions = [
 ]
 const ignoredDirectories = [
   "node_modules", ".git", ".next", "dist", "build", "coverage", ".turbo",
-  ".aws", ".ssh", ".gnupg", ".kube",
+  "generated", ".aws", ".ssh", ".gnupg", ".kube",
 ]
 const sensitiveBasenames = new Set([
   ".npmrc", ".pypirc", ".netrc", "credentials", "credentials.json",

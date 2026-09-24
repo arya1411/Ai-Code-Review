@@ -20,6 +20,12 @@ export function MarketingHeader({ isAuthenticated }: MarketingHeaderProps) {
             Features
           </a>
           <a
+            href="#chat"
+            className="text-sm font-medium text-neutral-400 transition-colors hover:text-white"
+          >
+            Chat
+          </a>
+          <a
             href="#how-it-works"
             className="text-sm font-medium text-neutral-400 transition-colors hover:text-white"
           >

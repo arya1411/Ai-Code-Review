@@ -1,13 +1,20 @@
 import { embed, embedMany } from "ai";
 import { google, type GoogleEmbeddingModelOptions } from "@ai-sdk/google";
 import prisma from "@/lib/db";
-import { pineconeIndex } from "@/lib/pinecone";
+import { Prisma } from "@/lib/generated/prisma/client";
 import { env } from "@/lib/env";
 
 const CHUNK_SIZE = 6_000;
 const CHUNK_OVERLAP = 500;
 const MAX_FILE_CHARACTERS = 36_000;
-let pineconeEnabled = pineconeIndex !== null;
+const VECTOR_INSERT_BATCH_SIZE = 100;
+// Keep each request comfortably below the current 30K embedding-token/minute
+// quota. Code is commonly around 3 characters/token, so 60K characters leaves
+// headroom for tokenizer variance and other embedding requests.
+const EMBEDDING_BATCH_MAX_CHARACTERS = 60_000;
+const EMBEDDING_BATCH_MAX_ITEMS = 100;
+const EMBEDDING_BATCH_INTERVAL_MS = 60_500;
+const EMBEDDING_RATE_LIMIT_RETRIES = 3;
 
 export interface CodeChunk {
     path: string;
@@ -63,47 +70,23 @@ export function selectRelevantCodeChunks(
         .slice(0, topK);
 }
 
-async function listVectorIds(prefix: string): Promise<string[]> {
-    if (!pineconeIndex || !pineconeEnabled) return [];
-
-    const ids: string[] = [];
-    let paginationToken: string | undefined;
-
-    do {
-        const page = await pineconeIndex.listPaginated({
-            prefix,
-            limit: 100,
-            paginationToken,
-        });
-        ids.push(...(page.vectors ?? []).flatMap((vector) => vector.id ? [vector.id] : []));
-        paginationToken = page.pagination?.next;
-    } while (paginationToken);
-
-    return ids;
-}
-
 export async function deleteCodeBaseIndex(repoId: string) {
     const deleted = await prisma.repositoryCodeChunk.deleteMany({
         where: { repoKey: repoId },
     });
 
-    if (pineconeIndex && pineconeEnabled) {
-        try {
-            const ids = [
-                ...(await listVectorIds(`${repoId}:file:`)),
-                ...(await listVectorIds(`${repoId}-`)),
-            ];
+    return deleted.count;
+}
 
-            for (let i = 0; i < ids.length; i += 100) {
-                await pineconeIndex.deleteMany({ ids: ids.slice(i, i + 100) });
-            }
-        } catch (error) {
-            pineconeEnabled = false;
-            console.warn("Pinecone cleanup failed; PostgreSQL chunks were removed", error);
-        }
+function toVectorLiteral(values: number[]) {
+    if (
+        values.length !== env.EMBEDDING_DIMENSIONS
+        || values.some((value) => !Number.isFinite(value))
+    ) {
+        throw new Error(`Expected a ${env.EMBEDDING_DIMENSIONS}-dimension finite embedding`);
     }
 
-    return deleted.count;
+    return `[${values.join(",")}]`;
 }
 
 export async function generateEmbedding(
@@ -128,20 +111,93 @@ async function generateEmbeddings(
     values: string[],
     taskType: GoogleEmbeddingModelOptions["taskType"],
 ) {
-    const { embeddings } = await embedMany({
-        model: google.embedding("gemini-embedding-001"),
-        values,
-        maxParallelCalls: 3,
-        maxRetries: 3,
-        providerOptions: {
-            google: {
-                outputDimensionality: env.EMBEDDING_DIMENSIONS,
-                taskType,
-            } satisfies GoogleEmbeddingModelOptions,
-        },
-    });
+    const batches = createEmbeddingBatches(values);
+    const embeddings: number[][] = [];
+    let previousBatchStartedAt = 0;
+
+    for (const batch of batches) {
+        if (previousBatchStartedAt > 0) {
+            const elapsed = Date.now() - previousBatchStartedAt;
+            await wait(Math.max(0, EMBEDDING_BATCH_INTERVAL_MS - elapsed));
+        }
+
+        let rateLimitAttempts = 0;
+        while (true) {
+            previousBatchStartedAt = Date.now();
+            try {
+                const result = await embedMany({
+                    model: google.embedding("gemini-embedding-001"),
+                    values: batch,
+                    maxParallelCalls: 1,
+                    maxRetries: 3,
+                    providerOptions: {
+                        google: {
+                            outputDimensionality: env.EMBEDDING_DIMENSIONS,
+                            taskType,
+                        } satisfies GoogleEmbeddingModelOptions,
+                    },
+                });
+                embeddings.push(...result.embeddings);
+                break;
+            } catch (error) {
+                if (!isRateLimitError(error) || rateLimitAttempts >= EMBEDDING_RATE_LIMIT_RETRIES) {
+                    throw error;
+                }
+                rateLimitAttempts += 1;
+                await wait(EMBEDDING_BATCH_INTERVAL_MS);
+            }
+        }
+    }
 
     return embeddings;
+}
+
+function wait(milliseconds: number) {
+    return milliseconds > 0
+        ? new Promise<void>((resolve) => setTimeout(resolve, milliseconds))
+        : Promise.resolve();
+}
+
+function isRateLimitError(error: unknown) {
+    if (typeof error !== "object" || error === null) return false;
+
+    const candidate = error as { statusCode?: unknown; status?: unknown; message?: unknown };
+    return candidate.statusCode === 429
+        || candidate.status === 429
+        || (typeof candidate.message === "string" && /429|rate.?limit|resource exhausted/i.test(candidate.message));
+}
+
+export function createEmbeddingBatches(
+    values: string[],
+    maxCharacters: number = EMBEDDING_BATCH_MAX_CHARACTERS,
+    maxItems: number = EMBEDDING_BATCH_MAX_ITEMS,
+) {
+    if (!Number.isInteger(maxCharacters) || maxCharacters <= 0) {
+        throw new Error("Embedding batch character limit must be a positive integer");
+    }
+    if (!Number.isInteger(maxItems) || maxItems <= 0) {
+        throw new Error("Embedding batch item limit must be a positive integer");
+    }
+
+    const batches: string[][] = [];
+    let batch: string[] = [];
+    let batchCharacters = 0;
+
+    for (const value of values) {
+        const exceedsCharacters = batch.length > 0 && batchCharacters + value.length > maxCharacters;
+        const exceedsItems = batch.length >= maxItems;
+        if (exceedsCharacters || exceedsItems) {
+            batches.push(batch);
+            batch = [];
+            batchCharacters = 0;
+        }
+
+        batch.push(value);
+        batchCharacters += value.length;
+    }
+
+    if (batch.length > 0) batches.push(batch);
+    return batches;
 }
 
 export async function indexCodeBase(
@@ -188,47 +244,36 @@ export async function indexCodeBase(
     const nextIds = new Set(records.map((record) => record.id));
     const removedPostgresChunks = previousChunks.filter((chunk) => !nextIds.has(chunk.id)).length;
 
-    await prisma.$transaction([
-        prisma.repositoryCodeChunk.deleteMany({ where: { repoKey } }),
-        prisma.repositoryCodeChunk.createMany({
-            data: records.map((record) => ({
-                id: record.id,
-                repositoryId,
-                repoKey,
-                path: record.metadata.path,
-                chunkIndex: record.metadata.chunkIndex,
-                content: record.metadata.content,
-                embedding: record.values,
-            })),
-        }),
-    ]);
+    await prisma.$transaction(async (transaction) => {
+        await transaction.repositoryCodeChunk.deleteMany({ where: { repoKey } });
 
-    let removedPineconeChunks = 0;
-    if (pineconeIndex && pineconeEnabled) {
-        try {
-            const currentIds = new Set([
-                ...(await listVectorIds(`${repoKey}:file:`)),
-                ...(await listVectorIds(`${repoKey}-`)),
-            ]);
-            const batchSize = 100;
-            for (let i = 0; i < records.length; i += batchSize) {
-                await pineconeIndex.upsert({ records: records.slice(i, i + batchSize) });
-            }
+        for (let offset = 0; offset < records.length; offset += VECTOR_INSERT_BATCH_SIZE) {
+            const batch = records.slice(offset, offset + VECTOR_INSERT_BATCH_SIZE);
+            const values = batch.map((record) => Prisma.sql`(
+                ${record.id},
+                ${repositoryId},
+                ${repoKey},
+                ${record.metadata.path},
+                ${record.metadata.chunkIndex},
+                ${record.metadata.content},
+                CAST(${toVectorLiteral(record.values)} AS vector(768)),
+                CURRENT_TIMESTAMP,
+                CURRENT_TIMESTAMP
+            )`);
 
-            const staleIds = [...currentIds].filter((id) => !nextIds.has(id));
-            removedPineconeChunks = staleIds.length;
-            for (let i = 0; i < staleIds.length; i += 100) {
-                await pineconeIndex.deleteMany({ ids: staleIds.slice(i, i + 100) });
-            }
-        } catch (error) {
-            pineconeEnabled = false;
-            console.warn("Pinecone indexing failed; PostgreSQL index is ready", error);
+            await transaction.$executeRaw(Prisma.sql`
+                INSERT INTO "repository_code_chunk" (
+                    "id", "repositoryId", "repoKey", "path", "chunkIndex",
+                    "content", "embedding", "createdAt", "updatedAt"
+                )
+                VALUES ${Prisma.join(values)}
+            `);
         }
-    }
+    });
 
     return {
         indexedChunks: records.length,
-        removedChunks: Math.max(removedPostgresChunks, removedPineconeChunks),
+        removedChunks: removedPostgresChunks,
     };
 }
 
@@ -259,69 +304,31 @@ export function cosineSimilarity(left: number[], right: number[]) {
     return denominator === 0 ? 0 : dotProduct / denominator;
 }
 
-function parseStoredEmbedding(value: unknown): number[] | null {
-    if (!Array.isArray(value) || !value.every((item) => typeof item === "number")) {
-        return null;
-    }
-    return value;
-}
-
 export async function retrieveContextWithSources(
     query: string,
     repoId: string,
     topK: number = 6,
 ): Promise<RetrievedCodeContext[]> {
-    const chunks = await prisma.repositoryCodeChunk.findMany({
+    const indexedChunk = await prisma.repositoryCodeChunk.findFirst({
         where: { repoKey: repoId },
-        select: { path: true, content: true, embedding: true },
+        select: { id: true },
     });
+    if (!indexedChunk) return [];
 
-    if (chunks.length > 0) {
-        const embedding = await generateEmbedding(query, "RETRIEVAL_QUERY");
-        return chunks
-            .flatMap((chunk) => {
-                const storedEmbedding = parseStoredEmbedding(chunk.embedding);
-                return storedEmbedding
-                    ? [{
-                        path: chunk.path,
-                        content: chunk.content,
-                        score: cosineSimilarity(embedding, storedEmbedding),
-                    }]
-                    : [];
-            })
-            .sort((left, right) => right.score - left.score)
-            .slice(0, topK);
-    }
+    const embedding = await generateEmbedding(query, "RETRIEVAL_QUERY");
+    const vector = toVectorLiteral(embedding);
+    const resultLimit = Math.max(1, Math.min(Math.trunc(topK), 50));
 
-    if (pineconeIndex && pineconeEnabled) {
-        try {
-            const embedding = await generateEmbedding(query, "RETRIEVAL_QUERY");
-            const result = await pineconeIndex.query({
-                vector: embedding,
-                filter: { repoId },
-                topK,
-                includeMetadata: true,
-            });
-
-            const matches = result.matches.flatMap((match) => {
-                const path = match.metadata?.path;
-                const content = match.metadata?.content;
-
-                if (typeof path !== "string" || typeof content !== "string") {
-                    return [];
-                }
-
-                return [{ path, content, score: match.score }];
-            });
-
-            if (matches.length > 0) return matches;
-        } catch (error) {
-            pineconeEnabled = false;
-            console.warn("Pinecone retrieval failed; no legacy vector context is available", error);
-        }
-    }
-
-    return [];
+    return prisma.$queryRaw<RetrievedCodeContext[]>(Prisma.sql`
+        SELECT
+            "path",
+            "content",
+            1 - ("embedding" <=> CAST(${vector} AS vector(768))) AS "score"
+        FROM "repository_code_chunk"
+        WHERE "repoKey" = ${repoId}
+        ORDER BY "embedding" <=> CAST(${vector} AS vector(768))
+        LIMIT ${resultLimit}
+    `);
 }
 
 export const retruceContext = retrieveContext;

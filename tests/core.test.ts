@@ -3,7 +3,7 @@ import assert from "node:assert/strict"
 import { createHmac } from "node:crypto"
 import { parseServerEnv } from "../lib/env"
 import { isDefaultBranchPush, verifyGitHubWebhookSignature } from "../lib/github-webhook"
-import { cosineSimilarity, createCodeChunks, selectRelevantCodeChunks } from "../module/ai/lib/rag"
+import { cosineSimilarity, createCodeChunks, createEmbeddingBatches, selectRelevantCodeChunks } from "../module/ai/lib/rag"
 import { isIndexableRepositoryFile, isProbablyBinaryContent } from "../module/github/lib/repository-files"
 import { parseReviewModelOutput } from "../module/ai/lib/review-output"
 import { formatGitHubReviewComment } from "../module/ai/lib/github-review-comment"
@@ -16,7 +16,6 @@ const validEnvironment = {
   GITHUB_CLIENT_SECRET: "github-secret",
   GITHUB_WEBHOOK_SECRET: "webhook-secret",
   GOOGLE_GENERATIVE_AI_API_KEY: "google-key",
-  PINECONE_DB_API_KEY: "pinecone-key",
   NEXT_PUBLIC_APP_BASE_URL: "http://localhost:3000",
 } satisfies Record<string, string | undefined>
 
@@ -25,8 +24,11 @@ test("environment validation reports missing required configuration", () => {
     () => parseServerEnv({}),
     /Invalid server environment: DATABASE_URL/,
   )
-  assert.equal(parseServerEnv(validEnvironment).PINECONE_INDEX, "codesentinal-vector-embeddings")
   assert.equal(parseServerEnv(validEnvironment).EMBEDDING_DIMENSIONS, 768)
+  assert.throws(
+    () => parseServerEnv({ ...validEnvironment, EMBEDDING_DIMENSIONS: "1536" }),
+    /EMBEDDING_DIMENSIONS must be 768/,
+  )
 })
 
 test("GitHub webhook signatures are verified with SHA-256", () => {
@@ -56,6 +58,18 @@ test("code files are split into overlapping, source-labelled chunks", () => {
   assert.match(chunks[1].content, /^File: src\/index\.ts\nChunk: 2/)
 })
 
+test("embedding batches stay within quota-oriented character and item limits", () => {
+  const batches = createEmbeddingBatches([
+    "a".repeat(30),
+    "b".repeat(30),
+    "c".repeat(30),
+    "d".repeat(10),
+  ], 60, 2)
+
+  assert.deepEqual(batches.map((batch) => batch.length), [2, 2])
+  assert.ok(batches.every((batch) => batch.reduce((total, value) => total + value.length, 0) <= 60))
+})
+
 test("cosine similarity ranks aligned embeddings above unrelated ones", () => {
   assert.equal(cosineSimilarity([1, 0], [1, 0]), 1)
   assert.equal(cosineSimilarity([1, 0], [0, 1]), 0)
@@ -75,6 +89,8 @@ test("direct repository fallback ranks relevant files and excludes sensitive fil
   assert.equal(isIndexableRepositoryFile({ path: ".env.example", type: "blob", size: 20 }), false)
   assert.equal(isIndexableRepositoryFile({ path: ".aws/credentials", type: "blob", size: 20 }), false)
   assert.equal(isIndexableRepositoryFile({ path: "terraform/prod.tfvars", type: "blob", size: 20 }), false)
+  assert.equal(isIndexableRepositoryFile({ path: "lib/generated/client.ts", type: "blob", size: 20 }), false)
+  assert.equal(isIndexableRepositoryFile({ path: "src/generated/types.ts", type: "blob", size: 20 }), false)
   assert.equal(isProbablyBinaryContent(Buffer.from([0, 1, 2, 3])), true)
   assert.equal(isProbablyBinaryContent(Buffer.from("export const safe = true")), false)
 })

@@ -265,8 +265,13 @@ export const deleteWebhook = async (owner : string , repo : string) => {
 
 }
 
-const MAX_REPOSITORY_FILES = 100;
-const FILE_FETCH_CONCURRENCY = 10;
+// GitHub authenticated users get 5,000 requests/hour (core limit).
+// Fetching 150 files = ~151 requests (1 tree + 150 blobs), which is only 3% of
+// that budget. Raise further only if you rarely hit the 30 min Inngest timeout.
+const MAX_REPOSITORY_FILES = 150;
+// GitHub's secondary rate limit discourages very high concurrency. 15 parallel
+// blob fetches is a safe middle-ground that avoids triggering abuse detection.
+const FILE_FETCH_CONCURRENCY = 15;
 
 export interface RepositorySnapshot {
     files: { path: string; content: string }[];

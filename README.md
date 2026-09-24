@@ -6,7 +6,7 @@ Repository-aware AI review and codebase chat for GitHub repositories.
 
 - GitHub OAuth authentication through Better Auth.
 - Repository discovery, connection, webhook installation, and disconnection.
-- Background source indexing through Inngest, Gemini embeddings, and PostgreSQL, with optional Pinecone acceleration.
+- Background source indexing through Inngest, Gemini embeddings, and PostgreSQL with pgvector search.
 - Explicit repository index states: `NOT_INDEXED`, `INDEXING`, `READY`, and `FAILED`.
 - Retryable indexing with stale-vector cleanup and repository-scoped isolation.
 - Codebase chat grounded in retrieved source chunks with file citations.
@@ -32,7 +32,7 @@ GitHub OAuth ──> Better Auth ──> PostgreSQL
                   │                                           │
       GitHub source ─> Gemini embeddings          GitHub diff + retrieved context
                   │                                           │
-      PostgreSQL (+ optional Pinecone)               Gemini 3.6 Flash
+             PostgreSQL + pgvector                  Gemini 3.6 Flash
                                                               │
                                       PostgreSQL Review + Finding ─> GitHub comment
 ```
@@ -40,11 +40,10 @@ GitHub OAuth ──> Better Auth ──> PostgreSQL
 ## Requirements
 
 - Node.js 20 or newer
-- PostgreSQL (the project is configured for Neon)
+- PostgreSQL with the `vector` extension (the project is configured for Neon)
 - GitHub OAuth application
 - Public HTTPS application URL for GitHub webhooks
 - Google Generative AI API key
-- Optional: Pinecone serverless index compatible with 768-dimensional `gemini-embedding-001` vectors
 - Inngest account in production, or the Inngest dev server locally
 
 ## Environment
@@ -64,8 +63,7 @@ Copy `.env.example` to `.env` and provide real values. Server configuration is v
 | `APP_BASE_URL` | Public base URL used for webhook creation |
 | `NEXT_PUBLIC_APP_BASE_URL` | Fallback public base URL |
 | `GOOGLE_GENERATIVE_AI_API_KEY` | Gemini generation and embedding key |
-| `PINECONE_DB_API_KEY` | Optional Pinecone API key; PostgreSQL is used when omitted or unavailable |
-| `PINECONE_INDEX` | Optional Pinecone index name |
+| `EMBEDDING_DIMENSIONS` | Optional; must remain `768` to match the pgvector column |
 | `INNGEST_DEV` | Set to `1` when using the local Inngest dev server |
 
 Production Inngest signing/event keys are consumed by the Inngest SDK using its standard environment variables.
@@ -145,10 +143,10 @@ The baseline tests cover environment validation, GitHub webhook signatures, sour
 
 ## Important implementation limits
 
-- Indexing currently reads at most 100 GitHub tree entries and at most 36,000 characters per file.
+- Indexing currently reads at most 150 GitHub files and at most 36,000 characters per file; generated directories are excluded.
+- Embeddings are sent in quota-aware batches with one-minute spacing for the current 30K-token/minute Gemini tier.
 - Pull-request analysis reviews at most 100 changed files and limits the assembled diff to 60,000 characters.
 - Chat history is session-local and is not persisted.
-- PostgreSQL vector scoring runs in the application process and is intended for MVP-sized indexes.
-- If Pinecone is configured, ID listing used for stale cleanup requires a serverless index.
+- PostgreSQL performs exact cosine-distance ranking through pgvector; approximate indexing can be added later after retrieval-quality evaluation.
 
 These are explicit MVP limits, not simulated behavior.
