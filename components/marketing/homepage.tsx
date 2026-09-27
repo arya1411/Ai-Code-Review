@@ -1,681 +1,109 @@
 "use client"
 
+import { useRef, useState } from "react"
 import Link from "next/link"
-import {
-  ArrowRight,
-  Bot,
-  Bug,
-  GitPullRequest,
-  MessageSquare,
-  Shield,
-  Sparkles,
-  TrendingUp,
-  Zap,
-  CheckCircle,
-  Database,
-  Activity,
-} from "lucide-react"
+import { ArrowUpRight, Check, ChevronRight, CircleDot, MessageSquareText, ScanLine, ScanSearch, ShieldCheck, Terminal } from "lucide-react"
 import { MarketingHeader } from "@/components/marketing/marketing-header"
-import { AppBackground } from "@/components/layout/app-background"
-import { Button } from "@/components/ui/button"
-import { FadeIn } from "@/components/ui/fade-in"
+import { useHomepageMotion } from "@/components/marketing/use-homepage-motion"
 
-interface HomepageProps {
-  isAuthenticated: boolean
-}
+interface HomepageProps { isAuthenticated: boolean }
 
-/* ------------------------------------------------------------------ */
-/*  Data                                                                */
-/* ------------------------------------------------------------------ */
+const partners = ["VERCEL", "GITHUB", "LINEAR", "SUPABASE", "SENTRY", "GITLAB"]
+const reviewModes = {
+  security: { label: "SECURITY", file: "src/auth/session.ts", line: "42", title: "Session token accepted without rotation", detail: "A stale refresh token can be replayed after the user's password changes.", risk: "HIGH RISK" },
+  logic: { label: "LOGIC", file: "src/billing/invoice.ts", line: "118", title: "Retry path can duplicate a charge", detail: "The idempotency key is generated inside the retry loop instead of per request.", risk: "MEDIUM RISK" },
+  quality: { label: "QUALITY", file: "src/api/projects.ts", line: "76", title: "Repository convention drift", detail: "This route bypasses the shared validator used by adjacent project endpoints.", risk: "CONTEXT GAP" },
+} as const
+type ReviewMode = keyof typeof reviewModes
 
 const features = [
-  {
-    icon: Sparkles,
-    title: "AI code review",
-    description:
-      "Context-aware feedback on every pull request. Understands your codebase, not just the diff.",
-    badge: "Core",
-    accent: "from-violet-500/10 to-transparent",
-    iconColor: "text-violet-400",
-    borderColor: "border-violet-500/20",
-  },
-  {
-    icon: Database,
-    title: "RAG-powered context",
-    description:
-      "Reviews grounded in indexed repository context, including relevant files outside the pull request diff.",
-    badge: "Differentiator",
-    accent: "from-blue-500/10 to-transparent",
-    iconColor: "text-blue-400",
-    borderColor: "border-blue-500/20",
-  },
-  {
-    icon: MessageSquare,
-    title: "Repo chatbot",
-    description:
-      "Ask questions about your codebase and inspect the repository files used to ground each answer.",
-    badge: "New",
-    accent: "from-emerald-500/10 to-transparent",
-    iconColor: "text-emerald-400",
-    borderColor: "border-emerald-500/20",
-  },
-  {
-    icon: TrendingUp,
-    title: "PR risk scoring",
-    description:
-      "Every push gets a colored badge — Low, Medium, or High — with 2–3 plain-language reasons attached.",
-    badge: "New",
-    accent: "from-amber-500/10 to-transparent",
-    iconColor: "text-amber-400",
-    borderColor: "border-amber-500/20",
-  },
-  {
-    icon: Bug,
-    title: "Bug & security detection",
-    description:
-      "Identifies logic errors, edge cases, vulnerabilities, and unsafe patterns before they hit production.",
-    badge: "Core",
-    accent: "from-red-500/10 to-transparent",
-    iconColor: "text-red-400",
-    borderColor: "border-red-500/20",
-  },
-  {
-    icon: Activity,
-    title: "Repo health dashboard",
-    description:
-      "Contribution graphs, monthly activity charts, and commit history aggregated across all your repos.",
-    badge: "Core",
-    accent: "from-pink-500/10 to-transparent",
-    iconColor: "text-pink-400",
-    borderColor: "border-pink-500/20",
-  },
+  { no: "01", icon: ScanSearch, title: "Whole-repo context", body: "Reviews retrieve the files that matter outside the diff, so feedback understands the system—not just the changed lines." },
+  { no: "02", icon: ShieldCheck, title: "Risk before merge", body: "Every pull request gets a clear risk level with concise reasons covering security, logic, tests, and convention drift." },
+  { no: "03", icon: MessageSquareText, title: "Ask the codebase", body: "Get direct answers grounded in indexed source. Every response cites the files used to build it." },
 ]
 
-const steps = [
-  {
-    step: "01",
-    title: "Connect GitHub",
-    description: "Link your repositories in one click. No complex setup or YAML configs required.",
-    icon: GitPullRequest,
-  },
-  {
-    step: "02",
-    title: "Open a pull request",
-    description: "codeSentinel automatically triggers analysis on every new PR via GitHub webhooks.",
-    icon: Zap,
-  },
-  {
-    step: "03",
-    title: "Review with AI",
-    description: "Inspect risk scores, source-grounded findings, and suggested patches in the dashboard.",
-    icon: Bot,
-  },
-]
-
-const differentiators = [
-  {
-    label: "Repository awareness",
-    description:
-      "Retrieves relevant indexed files outside the pull request so reviews are not limited to the diff alone.",
-  },
-  {
-    label: "Reasoning transparency",
-    description:
-      "Chat answers identify the repository files used as context, while review findings include concrete file and line details when available.",
-  },
-  {
-    label: "Convention drift detection",
-    description:
-      "Flags when a PR doesn't follow patterns established elsewhere in the codebase — duplicate logic, stale docs, test gaps.",
-  },
-]
-
-const stats = [
-  { value: "1", label: "AI provider", sub: "Google Gemini" },
-  { value: "RAG", label: "powered context", sub: "PostgreSQL + pgvector" },
-  { value: "150", label: "files indexed", sub: "Refreshed on default-branch pushes" },
-]
-
-/* ------------------------------------------------------------------ */
-/*  PR Review Preview Card                                              */
-/* ------------------------------------------------------------------ */
-
-function ReviewPreview() {
-  const diffLines = [
-    { type: "ctx", text: "  const user = await db.query(" },
-    { type: "del", text: '    `SELECT * FROM users WHERE id=${req.params.id}`' },
-    { type: "add", text: "    'SELECT * FROM users WHERE id=$1', [req.params.id]" },
-    { type: "ctx", text: "  )" },
-    { type: "ctx", text: "  return res.json(user.rows[0])" },
-  ]
-
-  const findings = [
-    { severity: "critical", label: "SQL injection", file: "api/users.ts:14" },
-    { severity: "warn", label: "Missing error handler", file: "api/users.ts:18" },
-    { severity: "info", label: "Prefer optional chaining", file: "api/users.ts:20" },
-  ]
-
-  const severityStyle: Record<string, string> = {
-    critical: "bg-red-950/60 text-red-400 border-red-900",
-    warn: "bg-yellow-950/60 text-yellow-400 border-yellow-900",
-    info: "bg-neutral-900 text-neutral-400 border-neutral-800",
-  }
-
-  return (
-    <div className="hidden lg:flex flex-col gap-3 select-none">
-
-      {/* ── Window chrome ── */}
-      <div className="rounded-xl border border-neutral-800 bg-neutral-950 overflow-hidden shadow-2xl ring-1 ring-white/5">
-
-        {/* Title bar */}
-        <div className="flex items-center gap-3 border-b border-neutral-800 bg-black px-4 py-3">
-          <div className="flex gap-1.5">
-            <span className="size-2.5 rounded-full bg-neutral-800" />
-            <span className="size-2.5 rounded-full bg-neutral-800" />
-            <span className="size-2.5 rounded-full bg-neutral-800" />
-          </div>
-          <div className="flex-1 flex items-center gap-2 ml-1">
-            <GitPullRequest className="size-3.5 text-neutral-500 shrink-0" />
-            <span className="text-xs text-neutral-400 font-medium">
-              PR #312 · <span className="text-neutral-300">feat: user lookup endpoint</span>
-            </span>
-          </div>
-          <span className="flex items-center gap-1.5 rounded-full border border-emerald-900 bg-emerald-950/50 px-2 py-0.5 text-[10px] font-medium text-emerald-400">
-            <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            Reviewing
-          </span>
-        </div>
-
-        {/* Risk badge row */}
-        <div className="flex items-center gap-2 border-b border-neutral-800 bg-red-950/10 px-4 py-2">
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-neutral-600">Risk</span>
-          <span className="flex items-center gap-1.5 rounded-full border border-red-900 bg-red-950/50 px-2.5 py-0.5 text-[10px] font-semibold text-red-400">
-            HIGH · 87
-          </span>
-          <span className="text-[10px] text-neutral-600 ml-1">touches auth · no tests · large diff</span>
-        </div>
-
-        {/* Diff block */}
-        <div className="border-b border-neutral-800">
-          <div className="flex items-center gap-2 border-b border-neutral-800 bg-black/40 px-4 py-1.5">
-            <span className="font-mono text-[10px] text-neutral-500">api/users.ts</span>
-            <span className="ml-auto font-mono text-[10px] text-neutral-700">+1 −1</span>
-          </div>
-          <div className="font-mono text-[11px] leading-[1.8]">
-            {diffLines.map((line, i) => (
-              <div
-                key={i}
-                className={
-                  line.type === "del"
-                    ? "bg-red-950/30 px-4 text-red-400"
-                    : line.type === "add"
-                      ? "bg-green-950/30 px-4 text-green-400"
-                      : "px-4 text-neutral-600"
-                }
-              >
-                <span className="mr-3 text-neutral-700 select-none">
-                  {line.type === "del" ? "−" : line.type === "add" ? "+" : " "}
-                </span>
-                {line.text}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* AI comment */}
-        <div className="border-b border-neutral-800 px-4 py-3 bg-red-950/10">
-          <div className="flex items-start gap-2.5">
-            <div className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-neutral-800 text-[9px] font-bold text-white">
-              AI
-            </div>
-            <div>
-              <p className="text-[11px] font-semibold text-red-400 mb-0.5">Critical · SQL injection risk</p>
-              <p className="text-[11px] text-neutral-400 leading-relaxed">
-                String interpolation allows arbitrary query injection. Use parameterised queries with{" "}
-                <span className="font-mono text-neutral-300">$1</span> placeholders.
-                Found similar safe pattern in <span className="font-mono text-violet-400">db/queries.ts:42</span>.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Findings summary */}
-        <div className="px-4 py-3 space-y-1.5">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-neutral-600 mb-2">
-            Review findings
-          </p>
-          {findings.map((f) => (
-            <div
-              key={f.label}
-              className={`flex items-center gap-2.5 rounded-md border px-3 py-1.5 ${severityStyle[f.severity]}`}
-            >
-              <span className="text-[10px] font-semibold uppercase tracking-wide shrink-0">
-                {f.severity}
-              </span>
-              <span className="text-[11px] text-neutral-300 flex-1">{f.label}</span>
-              <span className="font-mono text-[10px] text-neutral-600 shrink-0">{f.file}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Below-card stat strip ── */}
-      <div className="flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-950 px-4 py-2.5">
-        <div className="flex items-center gap-1.5">
-          <Sparkles className="size-3.5 text-neutral-500" />
-          <span className="text-[11px] text-neutral-500">Powered by Gemini Flash + RAG</span>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="text-[11px] text-neutral-600">Example review output</span>
-        </div>
-      </div>
-
-    </div>
-  )
+function CornerMarks() {
+  return <><span className="corner-mark corner-mark-tl" /><span className="corner-mark corner-mark-tr" /><span className="corner-mark corner-mark-bl" /><span className="corner-mark corner-mark-br" /></>
 }
 
-/* ------------------------------------------------------------------ */
-/*  Repo Chat Preview                                                   */
-/* ------------------------------------------------------------------ */
-
-function ChatPreview() {
-  const messages = [
-    {
-      role: "user",
-      text: "What are the riskiest files in this repo?",
-    },
-    {
-      role: "ai",
-      text: "Based on churn and bug-flag frequency, the top 3 are:",
-      chips: ["api/users.ts", "auth/session.ts", "db/queries.ts"],
-    },
-    {
-      role: "user",
-      text: "Why is auth/session.ts risky?",
-    },
-    {
-      role: "ai",
-      text: "It's touched in 14 of the last 20 PRs, has 3 open HIGH-risk findings, and no corresponding test file was updated.",
-      chips: ["PR #289", "PR #301", "PR #310"],
-    },
-  ]
-
+function ReviewPanel() {
+  const [mode, setMode] = useState<ReviewMode>("security")
+  const active = reviewModes[mode]
   return (
-    <div className="flex flex-col rounded-xl border border-neutral-800 bg-neutral-950 overflow-hidden shadow-2xl ring-1 ring-white/5">
-      {/* Title bar */}
-      <div className="flex items-center gap-3 border-b border-neutral-800 bg-black px-4 py-3">
-        <div className="flex gap-1.5">
-          <span className="size-2.5 rounded-full bg-neutral-800" />
-          <span className="size-2.5 rounded-full bg-neutral-800" />
-          <span className="size-2.5 rounded-full bg-neutral-800" />
-        </div>
-        <div className="flex-1 flex items-center gap-2 ml-1">
-          <MessageSquare className="size-3.5 text-emerald-400 shrink-0" />
-          <span className="text-xs text-neutral-400 font-medium">
-            Chat with <span className="text-neutral-300">my-api-service</span>
-          </span>
-        </div>
-        <span className="flex items-center gap-1.5 rounded-full border border-emerald-900 bg-emerald-950/50 px-2 py-0.5 text-[10px] font-medium text-emerald-400">
-          <span className="size-1.5 rounded-full bg-emerald-400" />
-          Indexed
-        </span>
+    <div className="review-console relative" data-console>
+      <CornerMarks />
+      <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+        <div className="flex items-center gap-2 font-mono text-[10px] tracking-[0.14em] text-white/45"><span className="size-1.5 rounded-full bg-[#d7c2a4] shadow-[0_0_10px_#d7c2a4]" />LIVE REVIEW / PR #312</div>
+        <span className="font-mono text-[10px] text-white/30">00:07.84</span>
       </div>
-
-      {/* Messages */}
-      <div className="flex flex-col gap-3 p-4 text-[11px]">
-        {messages.map((msg, i) => (
-          <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-            {msg.role === "ai" && (
-              <div className="flex items-start gap-2 max-w-[85%]">
-                <div className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full bg-neutral-800 text-[8px] font-bold text-white">
-                  AI
-                </div>
-                <div className="space-y-1.5">
-                  <div className="rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-2 text-neutral-300 leading-relaxed">
-                    {msg.text}
-                  </div>
-                  {msg.chips && (
-                    <div className="flex flex-wrap gap-1">
-                      {msg.chips.map((chip) => (
-                        <span key={chip} className="rounded-full border border-violet-500/30 bg-violet-500/10 px-2 py-0.5 text-[10px] font-mono text-violet-400">
-                          {chip}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-            {msg.role === "user" && (
-              <div className="rounded-lg bg-neutral-800 px-3 py-2 text-neutral-200 leading-relaxed max-w-[80%]">
-                {msg.text}
-              </div>
-            )}
-          </div>
-        ))}
+      <div className="grid grid-cols-3 border-b border-white/10">
+        {(Object.keys(reviewModes) as ReviewMode[]).map((key) => <button key={key} onClick={() => setMode(key)} className={`console-tab ${mode === key ? "is-active" : ""}`}>{reviewModes[key].label}</button>)}
       </div>
-
-      {/* Input bar */}
-      <div className="border-t border-neutral-800 px-3 py-2.5 flex items-center gap-2">
-        <div className="flex-1 rounded-md border border-neutral-800 bg-neutral-900 px-3 py-1.5 text-[11px] text-neutral-600">
-          Ask anything about your repo…
+      <div className="relative min-h-[330px] overflow-hidden p-5 sm:p-7">
+        <div className="console-scan" />
+        <div className="mb-7 flex items-start justify-between gap-4">
+          <div><p className="font-mono text-[10px] tracking-[0.12em] text-[#d7c2a4]">{active.file}:{active.line}</p><h3 className="mt-3 max-w-sm text-xl font-medium leading-tight text-white sm:text-2xl">{active.title}</h3></div>
+          <span className="shrink-0 border border-[#d7c2a4]/40 bg-[#d7c2a4]/10 px-2 py-1 font-mono text-[9px] text-[#eadbc5]">{active.risk}</span>
         </div>
-        <button className="flex size-7 items-center justify-center rounded-md bg-white text-black">
-          <ArrowRight className="size-3.5" />
-        </button>
+        <div className="code-block font-mono text-[11px] leading-7 sm:text-xs">
+          <div><span className="text-white/20">38</span><span className="ml-5 text-[#8f99a8]">const session = await verifyToken(token)</span></div>
+          <div><span className="text-white/20">39</span><span className="ml-5 text-[#8f99a8]">if (!session) throw unauthorized()</span></div>
+          <div className="-mx-3 border-l border-[#ff5577] bg-[#ff5577]/8 px-3"><span className="text-[#ff5577]/60">42</span><span className="ml-5 text-[#ff7893]">return createSession(session.userId)</span></div>
+          <div><span className="text-white/20">43</span><span className="ml-5 text-[#8f99a8]">{"// refresh token remains valid"}</span></div>
+        </div>
+        <div className="mt-7 border-t border-white/10 pt-5">
+          <p className="text-sm leading-6 text-white/55">{active.detail}</p>
+          <div className="mt-4 flex items-center justify-between font-mono text-[10px]"><span className="flex items-center gap-2 text-[#45dca2]"><Check className="size-3" /> PATCH READY</span><button className="text-white/55 transition-colors hover:text-white">VIEW FIX <ArrowUpRight className="ml-1 inline size-3" /></button></div>
+        </div>
       </div>
     </div>
   )
 }
-
-/* ------------------------------------------------------------------ */
-/*  Main Homepage component                                             */
-/* ------------------------------------------------------------------ */
 
 export function Homepage({ isAuthenticated }: HomepageProps) {
+  const root = useRef<HTMLDivElement>(null)
+  useHomepageMotion(root)
   const ctaHref = isAuthenticated ? "/dashboard" : "/login"
-  const ctaLabel = isAuthenticated ? "Go to dashboard" : "Get started free"
-
+  const ctaLabel = isAuthenticated ? "OPEN DASHBOARD" : "START REVIEWING"
   return (
-    <AppBackground>
+    <div className="marketing-shell min-h-screen bg-[#101010] text-white">
       <MarketingHeader isAuthenticated={isAuthenticated} />
-
-      <main className="bg-black text-white">
-
-        {/* ── Hero ───────────────────────────────────────────── */}
-        <section className="relative mx-auto max-w-6xl px-6 pb-16 pt-8 md:px-10 md:pt-14 overflow-hidden">
-          {/* Ambient glow */}
-          <div className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 h-[600px] w-[900px] rounded-full bg-violet-900/10 blur-[120px]" />
-
-          <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16 relative">
-
-            {/* Left — hero copy */}
-            <FadeIn>
-              <div className="space-y-7">
-                {/* Label pill */}
-                <div className="inline-flex items-center gap-2 rounded-full border border-neutral-800 bg-neutral-950 px-3 py-1.5 text-xs text-neutral-400">
-                  <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  Repo-aware · Not just diff-aware
-                </div>
-
-                <h1 className="text-4xl font-bold leading-[1.08] tracking-[-0.04em] text-white sm:text-5xl md:text-6xl">
-                  AI code review
-                  <br />
-                  <span className="text-neutral-500">that reads beyond</span>
-                  <br />
-                  <span className="bg-gradient-to-r from-violet-400 to-blue-400 bg-clip-text text-transparent">
-                    the diff.
-                  </span>
-                </h1>
-
-                <p className="max-w-md text-base leading-relaxed text-neutral-400">
-                  codeSentinel analyzes pull requests with relevant indexed repository context to uncover
-                  breaking changes, convention drift, and security issues beyond the changed files.
-                </p>
-
-                <div className="flex flex-wrap items-center gap-3">
-                  <Button
-                    render={<Link href={ctaHref} />}
-                    size="lg"
-                    className="gap-2 bg-white text-black hover:bg-neutral-200 transition-colors font-semibold"
-                  >
-                    {ctaLabel}
-                    <ArrowRight className="size-3.5" />
-                  </Button>
-                  <Button
-                    render={<Link href="/docs" />}
-                    variant="outline"
-                    size="lg"
-                    className="border-neutral-800 text-neutral-300 hover:bg-neutral-900 hover:text-white"
-                  >
-                    Read the docs
-                  </Button>
-                </div>
-
-                {/* Trust badges */}
-                <div className="flex flex-wrap items-center gap-x-5 gap-y-2 pt-1">
-                  {["GitHub webhooks", "PostgreSQL RAG", "Google Gemini"].map((item) => (
-                    <span key={item} className="flex items-center gap-1.5 text-xs text-neutral-600">
-                      <CheckCircle className="size-3.5 text-emerald-600" />
-                      {item}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </FadeIn>
-
-            {/* Right — PR review preview */}
-            <FadeIn delay={0.1}>
-              <ReviewPreview />
-            </FadeIn>
+      <main ref={root}>
+        <section className="hero-grid relative overflow-hidden border-b border-white/10">
+          <div className="signal-field" aria-hidden="true"><div className="signal-glow" /><div className="signal-dots" /><div className="signal-orbit signal-orbit-a" /><div className="signal-orbit signal-orbit-b" /></div>
+          <div className="site-frame relative grid min-h-[710px] items-center gap-14 px-6 py-20 lg:grid-cols-[1.05fr_.95fr] lg:px-8 lg:py-24">
+            <div data-hero className="relative z-10 max-w-[660px]">
+              <h1 className="reveal-up text-balance text-[clamp(3.2rem,6.2vw,6.4rem)] font-medium leading-[.91] tracking-[-0.065em]">Review code with<span className="block text-[#d7c2a4]">the full picture.</span></h1>
+              <p className="reveal-up mt-8 max-w-[570px] text-base leading-7 text-white/52 sm:text-lg">codeSentinel understands your repository, catches what the diff misses, and turns every pull request into a clearer decision.</p>
+              <div className="reveal-up mt-10 flex flex-wrap items-center gap-3"><Link href={ctaHref} className="blue-button group">{ctaLabel}<ChevronRight className="size-4 transition-transform group-hover:translate-x-1" /></Link><Link href="/docs" className="outline-button">EXPLORE DOCS <ArrowUpRight className="size-3.5" /></Link></div>
+              <div className="reveal-up mt-10 flex flex-wrap gap-x-7 gap-y-2 font-mono text-[10px] text-white/35"><span><Check className="mr-1.5 inline size-3 text-[#45dca2]" /> 2 MINUTE SETUP</span><span><Check className="mr-1.5 inline size-3 text-[#45dca2]" /> GITHUB NATIVE</span><span><Check className="mr-1.5 inline size-3 text-[#45dca2]" /> NO YAML</span></div>
+            </div>
+            <div className="reveal-up relative z-10 lg:translate-x-4"><ReviewPanel /></div>
           </div>
         </section>
 
-        {/* ── Stats strip ─────────────────────────────────────── */}
-        <section className="border-y border-neutral-900">
-          <div className="mx-auto max-w-6xl px-6 md:px-10">
-            <div className="grid grid-cols-3 divide-x divide-neutral-900">
-              {stats.map((s) => (
-                <div key={s.label} className="px-6 py-8 text-center">
-                  <p className="text-3xl font-bold tracking-[-0.04em] text-white">{s.value}</p>
-                  <p className="mt-1 text-xs font-medium text-neutral-400">{s.label}</p>
-                  <p className="mt-0.5 text-[10px] text-neutral-700">{s.sub}</p>
-                </div>
-              ))}
+        <section className="border-b border-white/10"><div className="site-frame grid md:grid-cols-[170px_1fr]"><div className="flex items-center border-b border-white/10 px-6 py-5 font-mono text-[9px] tracking-[0.2em] text-white/30 md:border-b-0 md:border-r md:px-8">BUILT FOR TEAMS AT</div><div className="partner-marquee overflow-hidden py-5"><div className="partner-track flex min-w-max items-center">{[...partners, ...partners].map((partner, index) => <span key={`${partner}-${index}`} className="px-8 font-mono text-xs font-medium tracking-[0.08em] text-white/42 sm:px-12 sm:text-sm">{partner}</span>)}</div></div></div></section>
+
+        <section id="features" className="border-b border-white/10"><div className="site-frame">
+          <div data-reveal className="grid border-b border-white/10 lg:grid-cols-[.9fr_1.1fr]">
+            <div className="border-b border-white/10 px-6 py-16 lg:border-b-0 lg:border-r lg:px-8 lg:py-24"><p data-reveal-child className="section-label">[ 01 / INTELLIGENCE LAYER ]</p><h2 data-reveal-child className="mt-8 max-w-md text-4xl font-medium leading-[1.02] tracking-[-0.045em] sm:text-5xl">It reads the code around the code.</h2></div>
+            <div className="px-6 py-16 lg:px-14 lg:py-24"><p data-reveal-child className="max-w-2xl text-xl leading-8 text-white/62 sm:text-2xl sm:leading-9">Most reviewers see a patch. codeSentinel retrieves architecture, conventions, dependencies, and related files before it says a word.</p><div data-reveal-child className="mt-12 grid gap-px border border-white/10 bg-white/10 sm:grid-cols-3">{[["150+", "FILES INDEXED"], ["RAG", "GROUNDED CONTEXT"], ["100%", "TRACEABLE OUTPUT"]].map(([value, label]) => <div key={label} className="bg-[#101010] p-5"><p className="text-2xl tracking-[-0.04em] text-white">{value}</p><p className="mt-2 font-mono text-[9px] tracking-[0.16em] text-white/30">{label}</p></div>)}</div></div>
+          </div>
+          <div className="grid md:grid-cols-3">{features.map((feature, index) => { const Icon = feature.icon; return <article key={feature.title} data-reveal className={`feature-cell group relative min-h-[360px] px-6 py-10 md:px-8 ${index < features.length - 1 ? "md:border-r md:border-white/10" : ""}`}><div data-reveal-child className="flex items-start justify-between"><span className="font-mono text-[10px] text-white/25">/{feature.no}</span><Icon className="size-6 text-[#d7c2a4] transition-transform duration-500 group-hover:rotate-6 group-hover:scale-110" strokeWidth={1.5} /></div><div className="mt-28"><h3 data-reveal-child className="text-2xl font-medium tracking-[-0.035em]">{feature.title}</h3><p data-reveal-child className="mt-4 max-w-sm text-sm leading-6 text-white/45">{feature.body}</p></div><div className="feature-line" /></article>})}</div>
+        </div></section>
+
+        <section id="workflow" className="border-b border-white/10"><div className="site-frame grid lg:grid-cols-[.42fr_1.58fr]">
+          <aside className="border-b border-white/10 px-6 py-12 lg:border-b-0 lg:border-r lg:px-8 lg:py-20"><p className="section-label">CONTENTS</p><div className="mt-9 space-y-5 font-mono text-[10px] tracking-[0.06em] text-white/28"><p className="border-l border-[#d7c2a4] pl-4 text-white">01 / CONNECT</p><p className="pl-4">02 / INDEX</p><p className="pl-4">03 / REVIEW</p><p className="pl-4">04 / DECIDE</p></div></aside>
+          <div data-reveal className="px-6 py-16 lg:px-14 lg:py-20"><div className="flex flex-wrap items-end justify-between gap-7 border-b border-white/10 pb-10"><div><p data-reveal-child className="section-label">[ 02 / WORKFLOW ]</p><h2 data-reveal-child className="mt-7 text-4xl font-medium tracking-[-0.045em] sm:text-5xl">One connection. Every review.</h2></div><Link data-reveal-child href="/docs" className="micro-link">VIEW DOCUMENTATION <ArrowUpRight className="size-3" /></Link></div>
+            <div className="mt-10 grid gap-10 xl:grid-cols-[1fr_.85fr]"><div data-reveal-child className="space-y-2">{[["01", "Connect a repository", "Authorize GitHub and choose what codeSentinel can see."], ["02", "Build repository memory", "Source is chunked and indexed for semantic retrieval."], ["03", "Review on every push", "Findings update automatically as the pull request changes."]].map(([number, title, detail]) => <div key={number} className="workflow-row group grid grid-cols-[42px_1fr_auto] items-center gap-4 border border-white/10 p-4 transition-colors hover:border-[#d7c2a4]/50 hover:bg-[#d7c2a4]/5"><span className="font-mono text-[10px] text-[#d7c2a4]">{number}</span><div><p className="text-sm text-white/85">{title}</p><p className="mt-1 text-xs leading-5 text-white/35">{detail}</p></div><CircleDot className="size-4 text-white/15 transition-colors group-hover:text-[#d7c2a4]" /></div>)}</div>
+              <div data-reveal-child className="relative min-h-[300px] overflow-hidden border border-white/10 bg-[#0b0b0b] p-5 font-mono text-[11px]"><CornerMarks /><div className="flex items-center gap-2 border-b border-white/10 pb-4 text-white/30"><Terminal className="size-3.5" /> sentinel / activity</div><div className="mt-6 space-y-5"><p><span className="text-[#45dca2]">✓</span><span className="ml-3 text-white/55">repository connected</span><span className="float-right text-white/20">0.8s</span></p><p><span className="text-[#45dca2]">✓</span><span className="ml-3 text-white/55">150 files indexed</span><span className="float-right text-white/20">4.2s</span></p><p><span className="text-[#45dca2]">✓</span><span className="ml-3 text-white/55">context retrieved</span><span className="float-right text-white/20">1.1s</span></p><p><span className="text-[#d7c2a4]">●</span><span className="ml-3 text-white">reviewing PR #312</span><span className="float-right text-[#d7c2a4]">LIVE</span></p></div><div className="mt-8 h-px overflow-hidden bg-white/10"><div className="activity-progress h-full bg-[#d7c2a4]" /></div><p className="mt-3 text-[9px] tracking-[0.12em] text-white/20">REASONING ACROSS REPOSITORY CONTEXT</p></div>
             </div>
           </div>
-        </section>
+        </div></section>
 
-        {/* ── Features ────────────────────────────────────────── */}
-        <section id="features" className="mx-auto max-w-6xl px-6 py-28 md:px-10">
-          <FadeIn>
-            <div className="max-w-2xl mb-16">
-              <div className="inline-flex items-center gap-2 rounded-full border border-neutral-800 bg-neutral-950 px-3 py-1.5 text-xs text-neutral-500 mb-5">
-                <Sparkles className="size-3 text-violet-400" />
-                Feature set
-              </div>
-              <h2 className="text-3xl font-bold tracking-[-0.03em] text-white md:text-4xl">
-                Everything you need to ship with confidence.
-              </h2>
-              <p className="mt-4 text-base leading-relaxed text-neutral-400">
-                From automated PR analysis to repository chat — all grounded in your indexed source code.
-              </p>
-            </div>
-          </FadeIn>
-
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {features.map((feature, i) => (
-              <FadeIn key={feature.title} delay={0.05 * i}>
-                <div className={`relative rounded-xl border ${feature.borderColor} bg-gradient-to-b ${feature.accent} p-5 space-y-4 h-full`}>
-                  <div className="flex items-center justify-between">
-                    <div className={`flex size-9 items-center justify-center rounded-lg border border-neutral-800 bg-neutral-950 ${feature.iconColor}`}>
-                      <feature.icon className="size-4" />
-                    </div>
-                    <span className={`text-[10px] font-semibold uppercase tracking-wider ${feature.iconColor} opacity-70`}>
-                      {feature.badge}
-                    </span>
-                  </div>
-                  <h3 className="text-sm font-semibold text-white tracking-tight">
-                    {feature.title}
-                  </h3>
-                  <p className="text-sm leading-relaxed text-neutral-500">
-                    {feature.description}
-                  </p>
-                </div>
-              </FadeIn>
-            ))}
-          </div>
-        </section>
-
-        {/* ── Repo Chat Highlight ──────────────────────────────── */}
-        <section id="chat" className="border-t border-neutral-900">
-          <div className="mx-auto max-w-6xl px-6 py-28 md:px-10">
-            <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
-
-              {/* Left — chat preview */}
-              <FadeIn>
-                <ChatPreview />
-              </FadeIn>
-
-              {/* Right — copy */}
-              <FadeIn delay={0.1}>
-                <div className="space-y-6">
-                  <div className="inline-flex items-center gap-2 rounded-full border border-emerald-900 bg-emerald-950/30 px-3 py-1.5 text-xs text-emerald-400">
-                    <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    New feature
-                  </div>
-                  <h2 className="text-3xl font-bold tracking-[-0.03em] text-white md:text-4xl">
-                    Chat with your
-                    <br />
-                    <span className="text-neutral-500">indexed codebase.</span>
-                  </h2>
-                  <p className="text-base leading-relaxed text-neutral-400">
-                    The repo chatbot retrieves relevant source chunks through PostgreSQL pgvector.
-                    Every answer lists the repository files used as context so you can inspect
-                    what grounded the response.
-                  </p>
-                  <ul className="space-y-3">
-                    {[
-                      "Asks like a senior engineer, cites like a search engine",
-                      "Re-indexed after default-branch pushes",
-                      "Suggested prompts for onboarding: riskiest files, schema, architecture",
-                    ].map((item) => (
-                      <li key={item} className="flex items-start gap-2.5 text-sm text-neutral-400">
-                        <CheckCircle className="mt-0.5 size-4 shrink-0 text-emerald-500" />
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </FadeIn>
-
-            </div>
-          </div>
-        </section>
-
-        {/* ── Why codeSentinel ────────────────────────────────── */}
-        <section className="border-t border-neutral-900 bg-neutral-950/30">
-          <div className="mx-auto max-w-6xl px-6 py-24 md:px-10">
-            <FadeIn>
-              <div className="max-w-2xl mb-14">
-                <h2 className="text-3xl font-bold tracking-[-0.03em] text-white md:text-4xl">
-                  What makes it different.
-                </h2>
-                <p className="mt-4 text-base leading-relaxed text-neutral-400">
-                  codeSentinel supplements pull request diffs with relevant indexed repository context.
-                </p>
-              </div>
-            </FadeIn>
-
-            <div className="grid gap-6 md:grid-cols-3">
-              {differentiators.map((d, i) => (
-                <FadeIn key={d.label} delay={0.07 * i}>
-                  <div className="rounded-xl border border-neutral-800 bg-black p-6 space-y-3 h-full">
-                    <div className="flex size-8 items-center justify-center rounded-full border border-neutral-800 bg-neutral-900 font-mono text-xs font-bold text-neutral-400">
-                      0{i + 1}
-                    </div>
-                    <h3 className="text-sm font-semibold text-white">{d.label}</h3>
-                    <p className="text-sm leading-relaxed text-neutral-500">{d.description}</p>
-                  </div>
-                </FadeIn>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ── How it works ──────────────────────────────────────── */}
-        <section id="how-it-works" className="border-t border-neutral-900">
-          <div className="mx-auto max-w-6xl px-6 py-28 md:px-10">
-            <FadeIn>
-              <div className="max-w-2xl mb-16">
-                <div className="inline-flex items-center gap-2 rounded-full border border-neutral-800 bg-neutral-950 px-3 py-1.5 text-xs text-neutral-500 mb-5">
-                  <Zap className="size-3 text-amber-400" />
-                  Setup in minutes
-                </div>
-                <h2 className="text-3xl font-bold tracking-[-0.03em] text-white md:text-4xl">
-                  A clear three-step workflow.
-                </h2>
-              </div>
-            </FadeIn>
-
-            <div className="grid gap-8 md:grid-cols-3">
-              {steps.map((step, i) => (
-                <FadeIn key={step.step} delay={0.08 * i}>
-                  <div className="relative space-y-5">
-                    {/* Connector line */}
-                    {i < steps.length - 1 && (
-                      <div className="hidden md:block absolute top-5 left-[calc(100%+1rem)] right-[-1rem] h-px bg-gradient-to-r from-neutral-800 to-transparent" />
-                    )}
-                    <div className="flex items-center gap-3">
-                      <div className="flex size-10 items-center justify-center rounded-lg border border-neutral-800 bg-neutral-950 text-neutral-400">
-                        <step.icon className="size-5" />
-                      </div>
-                      <span className="font-mono text-xs font-bold text-neutral-600">{step.step}</span>
-                    </div>
-                    <h3 className="text-lg font-semibold text-white tracking-tight">
-                      {step.title}
-                    </h3>
-                    <p className="text-sm leading-relaxed text-neutral-400">
-                      {step.description}
-                    </p>
-                  </div>
-                </FadeIn>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ── CTA ───────────────────────────────────────────────── */}
-        <section className="border-t border-neutral-900">
-          <div className="relative mx-auto max-w-6xl px-6 py-28 md:px-10 flex flex-col items-center text-center overflow-hidden">
-            {/* Ambient glow */}
-            <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 h-[300px] w-[600px] rounded-full bg-violet-900/10 blur-[80px]" />
-            <FadeIn>
-              <div className="relative space-y-8 max-w-2xl">
-                <h2 className="text-3xl font-bold tracking-[-0.04em] text-white sm:text-4xl md:text-5xl">
-                  Ship high-quality code.
-                  <br />
-                  <span className="text-neutral-500">Starting today.</span>
-                </h2>
-                <p className="text-base leading-relaxed text-neutral-400">
-                  Connect codeSentinel and start catching bugs, security issues, and convention
-                  drift before they reach production.
-                </p>
-                <div className="pt-2 flex flex-wrap justify-center gap-3">
-                  <Button
-                    render={<Link href={ctaHref} />}
-                    size="lg"
-                    className="gap-2 bg-white text-black hover:bg-neutral-200 transition-colors font-semibold"
-                  >
-                    {ctaLabel}
-                    <ArrowRight className="size-3.5" />
-                  </Button>
-                  <Button
-                    render={<Link href="/docs" />}
-                    variant="outline"
-                    size="lg"
-                    className="border-neutral-800 text-neutral-300 hover:bg-neutral-900 hover:text-white"
-                  >
-                    Documentation
-                  </Button>
-                </div>
-              </div>
-            </FadeIn>
-          </div>
-        </section>
+        <section className="relative overflow-hidden border-b border-white/10"><div className="cta-dots absolute inset-0 opacity-30" /><div data-reveal className="site-frame relative px-6 py-24 text-center sm:py-32 lg:px-8"><ScanLine data-reveal-child className="mx-auto size-5 text-[#d7c2a4]" /><p data-reveal-child className="section-label mt-6">THE NEXT REVIEW IS YOURS</p><h2 data-reveal-child className="mx-auto mt-7 max-w-4xl text-balance text-[clamp(2.8rem,6vw,5.8rem)] font-medium leading-[.96] tracking-[-0.06em]">See more. Miss less.<br /><span className="text-[#d7c2a4]">Ship with confidence.</span></h2><p data-reveal-child className="mx-auto mt-7 max-w-xl text-base leading-7 text-white/45">Connect your first repository and get a context-aware review in minutes.</p><div data-reveal-child className="mt-10 flex justify-center"><Link href={ctaHref} className="blue-button group">{ctaLabel}<ArrowUpRight className="size-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" /></Link></div></div></section>
       </main>
-
-      <footer className="border-t border-neutral-900 bg-black">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 py-8 text-sm text-neutral-500 md:flex-row md:px-10">
-          <p>© {new Date().getFullYear()} codeSentinel</p>
-          <div className="flex items-center gap-8">
-            <Link href="/docs" className="transition-colors hover:text-white">Docs</Link>
-            <Link href="#features" className="transition-colors hover:text-white">Features</Link>
-            <Link href="#chat" className="transition-colors hover:text-white">Chat</Link>
-            <Link href="/login" className="transition-colors hover:text-white">Sign in</Link>
-          </div>
-        </div>
-      </footer>
-    </AppBackground>
+      <footer className="bg-[#0b0b0b]"><div className="site-frame flex flex-col justify-between gap-8 px-6 py-10 sm:flex-row sm:items-end lg:px-8"><div><div className="flex items-center gap-2 text-sm font-medium"><ScanLine className="size-4 text-[#d7c2a4]" /> codeSentinel</div><p className="mt-3 font-mono text-[9px] tracking-[0.12em] text-white/25">REPOSITORY REVIEW SYSTEM / 2026</p></div><div className="flex flex-wrap gap-6 font-mono text-[10px] text-white/35"><Link href="/docs" className="hover:text-white">DOCS</Link><Link href="#features" className="hover:text-white">FEATURES</Link><Link href="/login" className="hover:text-white">SIGN IN</Link><span>© {new Date().getFullYear()}</span></div></div></footer>
+    </div>
   )
 }

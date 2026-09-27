@@ -11,19 +11,34 @@ function LogoMark({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "flex shrink-0 items-center justify-center rounded-md bg-primary",
+        "brand-mark flex shrink-0 items-center justify-center overflow-hidden border border-[#d7c2a4]/50 bg-[#d7c2a4] text-[#17130f]",
         className
       )}
       aria-hidden="true"
     >
       <svg
-        viewBox="0 0 16 16"
+        viewBox="0 0 24 24"
         fill="none"
-        className="size-[55%] text-primary-foreground"
+        className="size-[72%]"
       >
         <path
-          d="M4 12L8 4L12 12H9.5L8 9L6.5 12H4Z"
-          fill="currentColor"
+          d="M9 5.5 4.75 9.75 9 14M15 5.5l4.25 4.25L15 14"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="square"
+          strokeLinejoin="miter"
+        />
+        <path
+          d="M12 3.75v13.5"
+          stroke="currentColor"
+          strokeWidth="1.4"
+          strokeLinecap="square"
+        />
+        <path
+          d="M8.5 19.25h7"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="square"
         />
       </svg>
     </div>

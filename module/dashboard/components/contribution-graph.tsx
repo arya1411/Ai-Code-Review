@@ -7,7 +7,7 @@ import { getContributionStats } from "..";
 
 const githubTheme = {
   light: ['#ebedf0', '#9be9a8', '#40c463', '#30a14e', '#216e39'],
-  dark: ['#161b22', '#0e4429', '#006d32', '#26a641', '#39d353'],
+  dark: ['#24211e', '#30483e', '#356a55', '#3cae7c', '#45dca2'],
 };
 
 const ContributionGraph = () => {

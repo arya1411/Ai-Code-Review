@@ -3,10 +3,23 @@
 import { headers } from "next/headers"
 import { auth } from "@/lib/auth"
 import prisma from "@/lib/db"
+import { syncOpenPullRequestReviews } from "./sync-open-reviews"
 
 export async function getReviews() {
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session?.user) throw new Error("Unauthorized")
+
+  const githubAccount = await prisma.account.findFirst({
+    where: { userId: session.user.id, providerId: "github" },
+    select: { accessToken: true },
+  })
+
+  if (githubAccount?.accessToken) {
+    await syncOpenPullRequestReviews({
+      userId: session.user.id,
+      accessToken: githubAccount.accessToken,
+    })
+  }
 
   return prisma.review.findMany({
     where: { repository: { userId: session.user.id } },

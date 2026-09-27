@@ -31,7 +31,7 @@ export function DashboardShell({
   className,
 }: DashboardShellProps) {
   return (
-    <div className="flex min-h-screen flex-col md:flex-row bg-black">
+    <div className="dashboard-interface flex min-h-screen flex-col bg-black md:flex-row">
       {/* Desktop Sidebar - Hidden on mobile, visible on md screens and up */}
       <div className="hidden md:flex md:shrink-0">
         <Sidebar user={user} />
