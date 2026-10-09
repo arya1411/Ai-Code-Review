@@ -9,9 +9,9 @@ export const reviewOutputSchema = z.object({
     severity: z.enum(["INFO", "LOW", "MEDIUM", "HIGH"]),
     category: z.string().min(1).max(80),
     filePath: z.string().min(1).max(500),
-    line: z.number().int().positive().nullable().optional(),
+    line: z.number().int().positive().nullable(),
     message: z.string().min(1).max(1_000),
-    suggestion: z.string().max(1_500).nullable().optional(),
+    suggestion: z.string().max(1_500).nullable(),
   })).max(20),
 })
 

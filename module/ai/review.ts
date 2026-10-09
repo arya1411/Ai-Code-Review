@@ -1,10 +1,15 @@
 import { generateText, Output } from "ai"
-import { google, type GoogleLanguageModelOptions } from "@ai-sdk/google"
+import { createGroq } from "@ai-sdk/groq"
 import { Octokit } from "octokit"
 import prisma from "@/lib/db"
+import { env } from "@/lib/env"
 import { retrieveContextWithSources } from "@/module/ai/lib/rag"
 import { reviewOutputSchema } from "@/module/ai/lib/review-output"
 import { upsertGitHubReviewComment } from "@/module/ai/lib/github-review-comment"
+
+const groq = createGroq({ apiKey: env.GROQ_API_KEY })
+const MAX_REVIEW_DIFF_CHARS = 14_000
+const MAX_REVIEW_CONTEXT_CHARS = 4_000
 
 export async function analyzePullRequest(input: {
   reviewId: string
@@ -41,7 +46,7 @@ export async function analyzePullRequest(input: {
   const diff = changedFiles
     .map((file) => `FILE: ${file.filename}\nSTATUS: ${file.status}\nPATCH:\n${file.patch ?? "Patch unavailable (binary or too large)."}`)
     .join("\n\n---\n\n")
-    .slice(0, 60_000)
+    .slice(0, MAX_REVIEW_DIFF_CHARS)
 
   if (!diff) {
     throw new Error("No reviewable pull request diff was available")
@@ -61,14 +66,10 @@ export async function analyzePullRequest(input: {
   const context = repositoryContext
     .map((item, index) => `[CONTEXT ${index + 1}: ${item.path}]\n${item.content}`)
     .join("\n\n---\n\n")
+    .slice(0, MAX_REVIEW_CONTEXT_CHARS)
 
   const { output } = await generateText({
-    model: google("gemini-3.6-flash"),
-    providerOptions: {
-      google: {
-        thinkingConfig: { thinkingLevel: "minimal" },
-      } satisfies GoogleLanguageModelOptions,
-    },
+    model: groq("openai/gpt-oss-120b"),
     output: Output.object({
       schema: reviewOutputSchema,
       name: "pull_request_review",
@@ -88,7 +89,7 @@ ${diff}
 
 RELEVANT REPOSITORY CONTEXT:
 ${context || "No repository context was retrieved. Review only the diff and state any limitations."}`,
-    maxOutputTokens: 4_000,
+    maxOutputTokens: 1_600,
     temperature: 0.1,
   })
 

@@ -9,6 +9,7 @@ const serverEnvSchema = z.object({
   GITHUB_CLIENT_SECRET: z.string().min(1, "GITHUB_CLIENT_SECRET is required"),
   GITHUB_WEBHOOK_SECRET: z.string().min(1, "GITHUB_WEBHOOK_SECRET is required"),
   GOOGLE_GENERATIVE_AI_API_KEY: z.string().min(1, "GOOGLE_GENERATIVE_AI_API_KEY is required"),
+  GROQ_API_KEY: z.string().min(1, "GROQ_API_KEY is required"),
   EMBEDDING_DIMENSIONS: z.coerce.number().refine(
     (value) => value === 768,
     "EMBEDDING_DIMENSIONS must be 768 for the PostgreSQL vector column",

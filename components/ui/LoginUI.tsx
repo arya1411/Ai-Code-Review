@@ -69,7 +69,7 @@ export function LoginUI() {
               </button>
 
               <p className="mt-5 max-w-md text-[10px] leading-5 text-white/23">
-                By continuing, you agree to our <Link href="#" className="text-white/45 underline decoration-white/20 underline-offset-4 hover:text-white">Terms</Link> and <Link href="#" className="text-white/45 underline decoration-white/20 underline-offset-4 hover:text-white">Privacy Policy</Link>.
+                By continuing, you agree to our <Link href="/terms" className="text-white/45 underline decoration-white/20 underline-offset-4 hover:text-white">Terms</Link> and <Link href="#" className="text-white/45 underline decoration-white/20 underline-offset-4 hover:text-white">Privacy Policy</Link>.
               </p>
             </section>
 

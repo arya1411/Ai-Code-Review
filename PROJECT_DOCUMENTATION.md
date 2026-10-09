@@ -29,7 +29,7 @@ Push webhooks emit `repository.sync`, which runs the same refresh pipeline. User
 2. Chat uses an existing vector index when available and can fall back to direct GitHub source retrieval while indexing is unavailable.
 3. `askRepository()` validates ownership again on the server.
 4. The question is embedded and PostgreSQL performs an exact, user-scoped pgvector cosine search; direct lexical source selection is the fallback when no index exists.
-5. The most relevant chunks and recent browser-session conversation are passed to Gemini 3.6 Flash.
+5. The most relevant chunks and recent browser-session conversation are passed to Groq's GPT-OSS 120B model.
 6. The answer is returned with source-file citations.
 
 Chat messages are intentionally session-local in the MVP.
@@ -44,7 +44,7 @@ Chat messages are intentionally session-local in the MVP.
 6. The function moves the review through `QUEUED`, `ANALYZING`, and either `COMPLETED` or `FAILED`.
 7. Octokit loads PR metadata and changed-file patches.
 8. The retrieval layer asks PostgreSQL for the top related chunks through pgvector and degrades to diff-only analysis if context retrieval fails.
-9. Gemini returns schema-validated JSON containing a risk score, risk level, summary, reasons, and findings.
+9. Groq GPT-OSS 120B returns schema-validated JSON containing a risk score, risk level, summary, reasons, and findings.
 10. The review and its findings are stored transactionally, displayed on `/reviews`, and published as a create-or-update GitHub PR comment.
 
 ## Data model
@@ -129,4 +129,4 @@ npm test
 npm run build
 ```
 
-An actual end-to-end verification additionally requires GitHub OAuth, webhook delivery, Inngest, PostgreSQL with pgvector, and Gemini credentials. Follow the smoke test in `README.md`.
+An actual end-to-end verification additionally requires GitHub OAuth, webhook delivery, Inngest, PostgreSQL with pgvector, Gemini credentials, and Groq credentials. Follow the smoke test in `README.md`.

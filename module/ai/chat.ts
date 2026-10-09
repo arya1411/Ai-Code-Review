@@ -1,12 +1,15 @@
 "use server"
 
 import { generateText } from "ai"
-import { google, type GoogleLanguageModelOptions } from "@ai-sdk/google"
+import { createGroq } from "@ai-sdk/groq"
 import { headers } from "next/headers"
 import { auth } from "@/lib/auth"
 import prisma from "@/lib/db"
+import { env } from "@/lib/env"
 import { retrieveContextWithSources, selectRelevantCodeChunks } from "@/module/ai/lib/rag"
 import { getRepoFileContent } from "@/module/github/lib/github"
+
+const groq = createGroq({ apiKey: env.GROQ_API_KEY })
 
 export interface RepoChatMessage {
   role: "user" | "assistant"
@@ -84,12 +87,7 @@ export async function askRepository(
       .join("\n")
 
     const { text } = await generateText({
-      model: google("gemini-3.6-flash"),
-      providerOptions: {
-        google: {
-          thinkingConfig: { thinkingLevel: "minimal" },
-        } satisfies GoogleLanguageModelOptions,
-      },
+      model: groq("openai/gpt-oss-120b"),
       system: `You are codeSentinel, a precise repository assistant for ${repository.fullName}.
 Answer only from the supplied repository context. If the context is insufficient, say what you could not verify.
 Use concise plain text with short paragraphs or simple lists. Cite supporting files inline with [1], [2], and so on, matching the numbered sources.

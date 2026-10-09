@@ -62,7 +62,7 @@ function ArchDiagram() {
     { icon: GitBranch, label: "GitHub PR", sub: "Webhook event" },
     { icon: Webhook, label: "Next.js API", sub: "/api/webhooks/github" },
     { icon: Zap, label: "Inngest", sub: "Background job queue" },
-    { icon: Cpu, label: "AI Agent", sub: "Gemini 3.6 Flash" },
+    { icon: Cpu, label: "AI Agent", sub: "Groq GPT-OSS 120B" },
     { icon: Database, label: "PostgreSQL", sub: "Durable vector store / RAG" },
   ]
 
@@ -109,7 +109,8 @@ const techItems: TechCard[] = [
   { name: "Prisma 7 + PostgreSQL", role: "ORM and pgvector retrieval", badge: "Data" },
   { name: "better-auth", role: "GitHub OAuth session management", badge: "Auth" },
   { name: "Inngest", role: "Durable background job queue", badge: "Jobs" },
-  { name: "Google Gemini 3.6 Flash", role: "LLM powering reviews and chat", badge: "AI" },
+  { name: "Google Gemini", role: "Repository embeddings", badge: "AI" },
+  { name: "Groq GPT-OSS 120B", role: "Repository chat and pull-request reviews", badge: "AI" },
   { name: "Vercel AI SDK", role: "Streaming AI responses & tooling", badge: "AI" },
   { name: "Octokit", role: "GitHub REST & GraphQL API client", badge: "GitHub" },
   { name: "React Query", role: "Client-side data fetching & cache", badge: "Client" },
@@ -174,7 +175,7 @@ export function DocsContent() {
           <div className="space-y-4 text-sm leading-relaxed text-neutral-400">
             <p>
               When a developer opens a pull request, codeSentinel receives a GitHub webhook, queues
-              an Inngest background job, then runs an AI agent powered by Google Gemini that
+              an Inngest background job, then runs an AI agent powered by Groq GPT-OSS 120B that
               reads the diff, queries the codebase vector store for context, and stores a structured
               review for the codeSentinel dashboard.
             </p>
@@ -231,6 +232,7 @@ GITHUB_CLIENT_SECRET=...
 GITHUB_WEBHOOK_SECRET=...
 APP_BASE_URL=https://your-public-app.example.com
 GOOGLE_GENERATIVE_AI_API_KEY=...
+GROQ_API_KEY=...
 INNGEST_SIGNING_KEY=...
 INNGEST_EVENT_KEY=...`}
               />
@@ -300,7 +302,7 @@ npx inngest-cli@latest dev`}
             </p>
             <p>
               <strong className="text-neutral-200">4. The AI agent</strong> fetches the PR diff,
-              retrieves relevant codebase context through PostgreSQL pgvector, constructs a prompt, and calls Gemini
+              retrieves relevant codebase context through PostgreSQL pgvector, constructs a prompt, and calls Groq
               to produce a structured review object.
             </p>
             <p>
@@ -396,7 +398,7 @@ if (!timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) {
               },
               {
                 step: "run-review",
-                desc: "Constructs a prompt with the PR diff and retrieved context. Gemini 3.6 Flash produces a schema-validated review.",
+                desc: "Constructs a prompt with the PR diff and retrieved context. Groq GPT-OSS 120B produces a schema-validated review.",
               },
               {
                 step: "persist-results",

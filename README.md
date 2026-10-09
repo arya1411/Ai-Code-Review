@@ -9,9 +9,9 @@ Repository-aware AI review and codebase chat for GitHub repositories.
 - Background source indexing through Inngest, Gemini embeddings, and PostgreSQL with pgvector search.
 - Explicit repository index states: `NOT_INDEXED`, `INDEXING`, `READY`, and `FAILED`.
 - Retryable indexing with stale-vector cleanup and repository-scoped isolation.
-- Codebase chat grounded in retrieved source chunks with file citations.
+- Groq-powered codebase chat grounded in retrieved source chunks with file citations.
 - Signed GitHub `push` and `pull_request` webhook processing.
-- Background pull-request analysis with Gemini 3.6 Flash.
+- Background pull-request analysis with Groq GPT-OSS 120B.
 - Persisted review risk scores, reasons, findings, status, and failure details.
 - Real GitHub contribution, pull-request, repository, and commit dashboard data.
 
@@ -32,18 +32,19 @@ GitHub OAuth ──> Better Auth ──> PostgreSQL
                   │                                           │
       GitHub source ─> Gemini embeddings          GitHub diff + retrieved context
                   │                                           │
-             PostgreSQL + pgvector                  Gemini 3.6 Flash
+             PostgreSQL + pgvector                 Groq GPT-OSS 120B
                                                               │
                                       PostgreSQL Review + Finding ─> GitHub comment
 ```
 
 ## Requirements
 
-- Node.js 20 or newer
+- Node.js 22 or newer
 - PostgreSQL with the `vector` extension (the project is configured for Neon)
 - GitHub OAuth application
 - Public HTTPS application URL for GitHub webhooks
 - Google Generative AI API key
+- Groq API key
 - Inngest account in production, or the Inngest dev server locally
 
 ## Environment
@@ -62,7 +63,8 @@ Copy `.env.example` to `.env` and provide real values. Server configuration is v
 | `GITHUB_WEBHOOK_SECRET` | HMAC secret shared by installed webhooks |
 | `APP_BASE_URL` | Public base URL used for webhook creation |
 | `NEXT_PUBLIC_APP_BASE_URL` | Fallback public base URL |
-| `GOOGLE_GENERATIVE_AI_API_KEY` | Gemini generation and embedding key |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | Gemini embedding key for repository indexing |
+| `GROQ_API_KEY` | Groq key for repository chat and pull-request reviews |
 | `EMBEDDING_DIMENSIONS` | Optional; must remain `768` to match the pgvector column |
 | `INNGEST_DEV` | Set to `1` when using the local Inngest dev server |
 
@@ -145,7 +147,7 @@ The baseline tests cover environment validation, GitHub webhook signatures, sour
 
 - Indexing currently reads at most 150 GitHub files and at most 36,000 characters per file; generated directories are excluded.
 - Embeddings are sent in quota-aware batches with one-minute spacing for the current 30K-token/minute Gemini tier.
-- Pull-request analysis reviews at most 100 changed files and limits the assembled diff to 60,000 characters.
+- Pull-request analysis considers at most 100 changed files and sends up to 14,000 diff characters plus 4,000 repository-context characters to fit the current Groq 8K TPM tier.
 - Chat history is session-local and is not persisted.
 - PostgreSQL performs exact cosine-distance ranking through pgvector; approximate indexing can be added later after retrieval-quality evaluation.
 

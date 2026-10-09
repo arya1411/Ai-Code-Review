@@ -13,6 +13,7 @@ export function MarketingHeader({ isAuthenticated }: MarketingHeaderProps) {
           <a href="#features" className="header-link">PLATFORM</a>
           <a href="#workflow" className="header-link">WORKFLOW</a>
           <Link href="/docs" className="header-link">DOCS</Link>
+          <Link href="/terms" className="header-link">TERMS</Link>
           <Link href="/health" className="header-link">STATUS</Link>
         </nav>
         <div className="ml-auto flex h-full items-center border-l border-white/10">
