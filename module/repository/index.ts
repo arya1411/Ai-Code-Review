@@ -7,6 +7,7 @@ import { createWebHook, deleteWebhook, getRepositories } from "../github/lib/git
 import { inngest } from "@/inngest/client"
 import { revalidatePath } from "next/cache"
 import { expireStaleRepositoryIndexes } from "./lib/index-status"
+import { env } from "@/lib/env"
 
 export const fetchRepositories = async(page:number = 1 , perPage:number = 10) => {
     const session = await auth.api.getSession({
@@ -45,6 +46,8 @@ export const fetchRepositories = async(page:number = 1 , perPage:number = 10) =>
 export const reindexRepository = async (repositoryId: string) => {
     const session = await auth.api.getSession({ headers: await headers() })
     if (!session?.user) throw new Error("Unauthorized")
+
+    if (env.REPOSITORY_INDEXING_ENABLED !== "1") throw new Error("Repository indexing is paused. Pull request reviews remain available.")
 
     const repository = await prisma.repository.findFirst({
         where: { id: repositoryId, userId: session.user.id },
@@ -135,28 +138,30 @@ export const connectRepository = async(owner : string , repo : string , githubId
             throw dbError;
         }
 
-        try {
-            await inngest.send({
-                name : "repository.connected",
-                data : {
-                    owner ,
-                    repo,
-                    userId: session.user.id
+        if (env.REPOSITORY_INDEXING_ENABLED === "1") {
+            try {
+                await inngest.send({
+                    name : "repository.connected",
+                    data : {
+                        owner ,
+                        repo,
+                        userId: session.user.id
+                    }
+                })
+            } catch (eventError) {
+                await prisma.repository.delete({ where: { id: connectedRepository.id } });
+
+                const repositoryReferences = await prisma.repository.count({
+                    where: { githubId: BigInt(githubId) },
+                });
+                if (webhook.created && repositoryReferences === 0) {
+                    await deleteWebhook(owner, repo).catch((e) =>
+                        console.error("Webhook rollback failed:", e)
+                    );
                 }
-            })
-        } catch (eventError) {
-            await prisma.repository.delete({ where: { id: connectedRepository.id } });
 
-            const repositoryReferences = await prisma.repository.count({
-                where: { githubId: BigInt(githubId) },
-            });
-            if (webhook.created && repositoryReferences === 0) {
-                await deleteWebhook(owner, repo).catch((e) =>
-                    console.error("Webhook rollback failed:", e)
-                );
+                throw eventError;
             }
-
-            throw eventError;
         }
 
         return { webhook: webhook.hook, alreadyConnected: false };

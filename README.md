@@ -2,6 +2,10 @@
 
 Repository-aware AI review and codebase chat for GitHub repositories.
 
+**Repository chat and indexing are enabled by default** (`REPOSITORY_INDEXING_ENABLED=1`). Connect a repository to build its source index, ask questions with file citations, and receive repository-aware PR reviews. A Gemini embedding key and Groq key are required. Set the flag to `0` for diff-only PR reviews without embeddings or chat.
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for the deployment review, remaining launch requirements, and production setup.
+
 ## MVP capabilities
 
 - GitHub OAuth authentication through Better Auth.
@@ -43,7 +47,7 @@ GitHub OAuth ──> Better Auth ──> PostgreSQL
 - PostgreSQL with the `vector` extension (the project is configured for Neon)
 - GitHub OAuth application
 - Public HTTPS application URL for GitHub webhooks
-- Google Generative AI API key
+- Google Generative AI API key only when repository indexing is enabled
 - Groq API key
 - Inngest account in production, or the Inngest dev server locally
 
@@ -63,7 +67,8 @@ Copy `.env.example` to `.env` and provide real values. Server configuration is v
 | `GITHUB_WEBHOOK_SECRET` | HMAC secret shared by installed webhooks |
 | `APP_BASE_URL` | Public base URL used for webhook creation |
 | `NEXT_PUBLIC_APP_BASE_URL` | Fallback public base URL |
-| `GOOGLE_GENERATIVE_AI_API_KEY` | Gemini embedding key for repository indexing |
+| `REPOSITORY_INDEXING_ENABLED` | Defaults to `1`; set to `0` for diff-only PR reviews without indexing or chat |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | Required only when indexing is enabled |
 | `GROQ_API_KEY` | Groq key for repository chat and pull-request reviews |
 | `EMBEDDING_DIMENSIONS` | Optional; must remain `768` to match the pgvector column |
 | `INNGEST_DEV` | Set to `1` when using the local Inngest dev server |
@@ -136,17 +141,21 @@ The baseline tests cover environment validation, GitHub webhook signatures, sour
 
 1. Sign in with GitHub.
 2. Connect a repository on `/repositories`.
-3. Confirm its state becomes `READY`; use **Re-index** if necessary.
-4. Open `/dashboard/chat`, select the repository, and ask a source-specific question.
+3. Confirm `index-repo` runs in Inngest and the repository becomes **Ready**. Existing connections can be indexed with **Re-index**.
+4. Open `/dashboard/chat`, select the repository, and ask how authentication works. Verify the answer and its file citations. Chat can use a bounded GitHub source sample while indexing is unavailable.
 5. Open or update a non-draft pull request in the connected repository.
 6. Confirm the GitHub webhook returns `202` and the Inngest function succeeds.
 7. Open `/reviews` and verify the review moves from `QUEUED` to `ANALYZING` to `COMPLETED`, then confirm the single codeSentinel PR comment is created or updated.
 8. Disconnect the repository and verify its webhook, database record, reviews, and user-scoped vectors are removed.
 
+After changing the indexing flag or upgrading the workflow, restart/redeploy and sync `/api/inngest` again. With indexing enabled, confirm `index-repo`, `recover-cancelled-index`, and `review-pull-request` are registered. Existing connections can be re-indexed manually; no automatic bulk re-index is performed.
+
 ## Important implementation limits
 
-- Indexing currently reads at most 150 GitHub files and at most 36,000 characters per file; generated directories are excluded.
-- Embeddings are sent in quota-aware batches with one-minute spacing for the current 30K-token/minute Gemini tier.
+- Source snapshots sample at most 150 GitHub files, 36,000 characters per file, and 240,000 source characters total; background indexing includes at most 80 chunks. Generated and sensitive files are excluded. Large repositories are only partially indexed.
+- Background embeddings use bounded durable steps with 61-second Inngest sleeps between batches, leaving serverless requests idle during waits. Completed batches survive later retries, and the previous index stays available until atomic publication. Overlapping runs use a publication guard so an older run cannot replace a newer index.
+- Batch pacing applies per indexing run. For the pilot, index one repository at a time and monitor Gemini/Groq quotas; shared provider-wide rate limiting is still needed before unrestricted access.
+- Repository chat caps source context at 12,000 characters and recent history at 4,000; citations include only sources supplied to the model.
 - Pull-request analysis considers at most 100 changed files and sends up to 14,000 diff characters plus 4,000 repository-context characters to fit the current Groq 8K TPM tier.
 - Chat history is session-local and is not persisted.
 - PostgreSQL performs exact cosine-distance ranking through pgvector; approximate indexing can be added later after retrieval-quality evaluation.

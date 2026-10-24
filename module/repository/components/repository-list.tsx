@@ -29,10 +29,12 @@ type IndexPopupState = {
   dataVersionAtStart: number
 }
 
-function RepositoryStatus({ repository }: { repository: Repository }) {
+function RepositoryStatus({ repository, indexingEnabled }: { repository: Repository; indexingEnabled: boolean }) {
   const state = !repository.isConnected
     ? { label: "Not connected", dot: "bg-neutral-700" }
-    : repository.indexStatus === "READY"
+    : !indexingEnabled
+      ? { label: "Review ready", dot: "bg-emerald-400" }
+      : repository.indexStatus === "READY"
       ? { label: "Review ready", dot: "bg-emerald-400" }
       : repository.indexStatus === "INDEXING"
         ? { label: "Indexing", dot: "animate-pulse bg-amber-400" }
@@ -202,7 +204,7 @@ function IndexingPopup({
   )
 }
 
-export function RepositoryList() {
+export function RepositoryList({ indexingEnabled }: { indexingEnabled: boolean }) {
   const [searchQuery, setSearchQuery] = useState("")
   const [localConnectingId, setLocalConnectingId] = useState<number | null>(null)
   const [localIndexingId, setLocalIndexingId] = useState<number | null>(null)
@@ -223,6 +225,10 @@ export function RepositoryList() {
   const {mutate:connectRepo} = useConnectRepository({
     onSuccess: () => {
       setLocalConnectingId(null)
+      if (!indexingEnabled) {
+        setIsPopupOpen(false)
+        return
+      }
       setIndexPopup((current) => current ? { ...current, phase: "INDEXING" } : current)
     },
     onError: () => {
@@ -253,10 +259,10 @@ export function RepositoryList() {
   const hasActiveIndex = allRepositories.some((repo) => repo.indexStatus === "INDEXING") || isWaitingForFreshStatus
 
   useEffect(() => {
-    if (!hasActiveIndex) return
+    if (!indexingEnabled || !hasActiveIndex) return
     const interval = window.setInterval(() => void refetch(), 5000)
     return () => window.clearInterval(interval)
-  }, [hasActiveIndex, refetch])
+  }, [indexingEnabled, hasActiveIndex, refetch])
 
   const popupRepository = indexPopup
     ? allRepositories.find((repo) => repo.id === indexPopup.repositoryId)
@@ -268,6 +274,7 @@ export function RepositoryList() {
 
   const handleConnect = (repo : Repository) => {
     if (repo.isConnected) {
+      if (!indexingEnabled) return
       if (repo.indexStatus === "INDEXING") {
         setIndexPopup({ repositoryId: repo.id, repositoryName: repo.full_name, phase: "INDEXING", dataVersionAtStart: 0 })
         setIsPopupOpen(true)
@@ -283,7 +290,7 @@ export function RepositoryList() {
 
     setLocalConnectingId(repo.id)
     setIndexPopup({ repositoryId: repo.id, repositoryName: repo.full_name, phase: "CONNECTING", dataVersionAtStart: dataUpdatedAt })
-    setIsPopupOpen(true)
+    setIsPopupOpen(indexingEnabled)
     connectRepo( {
       owner: repo.full_name.split("/")[0],
       repo : repo.name,
@@ -293,7 +300,7 @@ export function RepositoryList() {
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-10 md:px-10 md:py-14 space-y-8">
-      {isPopupOpen && indexPopup && popupStatus && (
+      {indexingEnabled && isPopupOpen && indexPopup && popupStatus && (
         <IndexingPopup
           repositoryName={indexPopup.repositoryName}
           status={popupStatus}
@@ -308,7 +315,7 @@ export function RepositoryList() {
               GitHub Repositories
             </h1>
             <p className="text-sm text-neutral-400">
-              Connect repositories and prepare them for AI code reviews.
+              {indexingEnabled ? "Connect repositories and prepare them for AI code reviews." : "Connect repositories for pull request reviews. Reviews use the PR diff; indexing and repository chat are paused."}
             </p>
           </div>
         </header>
@@ -381,7 +388,7 @@ export function RepositoryList() {
 
                   <div className="flex items-center justify-between md:block">
                     <span className="font-mono text-[11px] uppercase tracking-widest text-neutral-700 md:hidden">State</span>
-                    <RepositoryStatus repository={repo} />
+                    <RepositoryStatus repository={repo} indexingEnabled={indexingEnabled} />
                   </div>
 
                   <div className="flex items-center justify-between md:block">
@@ -396,7 +403,11 @@ export function RepositoryList() {
                   </div>
 
                   <div className="flex justify-end">
-                    {repo.indexStatus === "READY" ? (
+                    {!indexingEnabled && repo.isConnected ? (
+                      <span className="inline-flex h-9 items-center gap-2 font-mono text-[12px] uppercase tracking-wide text-emerald-400">
+                        <Check className="size-3.5" /> Connected
+                      </span>
+                    ) : indexingEnabled && repo.indexStatus === "READY" ? (
                       <details className="group/menu relative">
                         <summary
                           className="flex size-8 cursor-pointer list-none items-center justify-center border border-neutral-800 text-neutral-600 transition hover:border-neutral-700 hover:text-white [&::-webkit-details-marker]:hidden"
@@ -432,9 +443,9 @@ export function RepositoryList() {
                             <Loader2 className="mr-1 size-3.5 animate-spin" />
                             {repo.isConnected ? "Starting" : "Connecting"}
                           </>
-                        ) : repo.indexStatus === "INDEXING" ? (
+                        ) : indexingEnabled && repo.indexStatus === "INDEXING" ? (
                           <>View activity</>
-                        ) : repo.indexStatus === "FAILED" ? (
+                        ) : indexingEnabled && repo.indexStatus === "FAILED" ? (
                           <>Retry index</>
                         ) : repo.isConnected ? (
                           <>Run index</>

@@ -59,7 +59,7 @@ export function DocsSidebar() {
 
   return (
     <aside className="hidden lg:block w-60 shrink-0">
-      <div className="sticky top-20 overflow-y-auto max-h-[calc(100vh-6rem)] pr-4 pb-8">
+      <div className="sticky top-[calc(var(--prototype-banner-height)+5rem)] overflow-y-auto max-h-[calc(100vh-var(--prototype-banner-height)-6rem)] pr-4 pb-8">
         <nav className="space-y-6">
           {sections.map((section) => (
             <div key={section.title}>

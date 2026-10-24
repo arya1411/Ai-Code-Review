@@ -1,8 +1,9 @@
 import { getOptionalSession } from "@/module/auth/utils/auth-utils"
 import { Homepage } from "@/components/marketing/homepage"
+import { env } from "@/lib/env"
 
 export default async function Home() {
   const session = await getOptionalSession()
 
-  return <Homepage isAuthenticated={!!session} />
+  return <Homepage isAuthenticated={!!session} indexingEnabled={env.REPOSITORY_INDEXING_ENABLED === "1"} />
 }

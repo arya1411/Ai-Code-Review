@@ -13,6 +13,7 @@ import { AppBackground } from "@/components/layout/app-background"
 import { DashboardShell } from "@/components/layout/dashboard-shell"
 import { FadeIn } from "@/components/ui/fade-in"
 import { requireAuth } from "@/module/auth/utils/auth-utils"
+import { env } from "@/lib/env"
 import { getRepositoryHealth } from "@/module/health"
 import { FindingCategoryChart, RiskTrendChart } from "@/module/health/components/health-charts"
 
@@ -62,6 +63,7 @@ function SectionHeader({ title, detail }: { title: string; detail?: string }) {
 export default async function HealthPage() {
   const session = await requireAuth()
   const health = await getRepositoryHealth()
+  const indexingEnabled = env.REPOSITORY_INDEXING_ENABLED === "1"
   const indexedPercent = health.summary.repositories === 0
     ? 0
     : Math.round((health.summary.readyRepositories / health.summary.repositories) * 100)
@@ -80,7 +82,7 @@ export default async function HealthPage() {
                   </div>
                   <h1 className="text-2xl font-semibold tracking-[-0.04em] text-white md:text-3xl">Health dashboard</h1>
                   <p className="mt-2 max-w-xl text-sm leading-6 text-neutral-500">
-                    Index reliability, review risk, recurring findings, and the files that need attention most.
+                    Review risk, recurring findings, and the files that need attention most.
                   </p>
                 </div>
                 <Link href="/reviews" className="inline-flex items-center gap-1.5 text-xs font-medium text-neutral-400 transition-colors hover:text-white">
@@ -93,9 +95,9 @@ export default async function HealthPage() {
           <FadeIn delay={0.04}>
             <div className="grid border-b border-neutral-900 sm:grid-cols-2 lg:grid-cols-4">
               <MetricCard
-                label="Index coverage"
-                value={`${indexedPercent}%`}
-                detail={`${health.summary.readyRepositories} of ${health.summary.repositories} repositories ready`}
+                label={indexingEnabled ? "Index coverage" : "Connected repositories"}
+                value={indexingEnabled ? `${indexedPercent}%` : health.summary.repositories}
+                detail={indexingEnabled ? `${health.summary.readyRepositories} of ${health.summary.repositories} repositories ready` : "PR reviews use the pull request diff"}
                 icon={ShieldCheck}
                 accent="text-emerald-400"
               />
@@ -161,12 +163,12 @@ export default async function HealthPage() {
             </FadeIn>
 
             <FadeIn delay={0.14} className="border-b border-neutral-900 p-6 md:p-8">
-              <SectionHeader title="Needs attention" detail="Index failures and recently detected high-risk changes" />
+              <SectionHeader title="Needs attention" detail={indexingEnabled ? "Index failures and recently detected high-risk changes" : "Recently detected high-risk changes"} />
               {health.attentionItems.length === 0 ? (
                 <div className="flex h-64 flex-col items-center justify-center text-center">
                   <CheckCircle2 className="size-7 text-emerald-500/70" />
                   <p className="mt-3 text-sm font-medium text-neutral-300">Nothing urgent</p>
-                  <p className="mt-1 text-xs text-neutral-600">High-risk reviews and failed indexes will appear here.</p>
+                  <p className="mt-1 text-xs text-neutral-600">{indexingEnabled ? "High-risk reviews and failed indexes will appear here." : "High-risk reviews will appear here."}</p>
                 </div>
               ) : (
                 <div className="divide-y divide-neutral-900">
@@ -195,7 +197,7 @@ export default async function HealthPage() {
           </div>
 
           <FadeIn delay={0.16} className="border-b border-neutral-900 p-6 md:p-8">
-            <SectionHeader title="Repository health" detail="Repositories ranked by indexing failures, high findings, and average review risk" />
+            <SectionHeader title="Repository health" detail="Repositories ranked by high findings and average review risk" />
             {health.repositories.length === 0 ? (
               <div className="rounded-lg border border-dashed border-neutral-800 px-6 py-12 text-center">
                 <p className="text-sm text-neutral-400">No repositories connected.</p>
@@ -223,8 +225,8 @@ export default async function HealthPage() {
                           </a>
                         </td>
                         <td className="py-3.5">
-                          <span className={`inline-flex rounded-full border px-2 py-0.5 text-[9px] font-semibold ${indexStyles[repository.indexStatus]}`}>
-                            {repository.indexStatus.replace("_", " ")}
+                          <span className={`inline-flex rounded-full border px-2 py-0.5 text-[9px] font-semibold ${indexingEnabled ? indexStyles[repository.indexStatus] : "border-neutral-800 bg-neutral-900 text-neutral-500"}`}>
+                            {indexingEnabled ? repository.indexStatus.replace("_", " ") : "PAUSED"}
                           </span>
                         </td>
                         <td className="py-3.5 text-right text-neutral-500">{repository.reviewCount}</td>

@@ -9,6 +9,7 @@ import {
   FolderGit2,
   MessageSquareCode,
   Activity,
+  CreditCard,
 } from "lucide-react"
 import { Logo } from "@/components/brand/logo"
 import { Avatar } from "@/components/ui/avatar"
@@ -38,6 +39,7 @@ const navItems = [
   { label: "Repositories", href: "/repositories", icon: FolderGit2 },
   { label: "Talk with Repo", href: "/dashboard/chat", icon: MessageSquareCode },
   { label: "Health", href: "/health", icon: Activity },
+  { label: "Plans & Pricing", href: "/pricing", icon: CreditCard },
   { label: "Settings", href: "/settings", icon: Settings },
 ]
 

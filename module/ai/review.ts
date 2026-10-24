@@ -58,11 +58,11 @@ export async function analyzePullRequest(input: {
     pullRequest.body ?? "",
     ...changedFiles.map((file) => file.filename),
   ].join("\n")
-  const repositoryContext = await retrieveContextWithSources(contextQuery, repoIndexId, 8)
+  const repositoryContext = env.REPOSITORY_INDEXING_ENABLED === "1" ? await retrieveContextWithSources(contextQuery, repoIndexId, 8)
     .catch((error) => {
       console.error("Repository context retrieval failed; continuing with diff-only review:", error)
       return []
-    })
+    }) : []
   const context = repositoryContext
     .map((item, index) => `[CONTEXT ${index + 1}: ${item.path}]\n${item.content}`)
     .join("\n\n---\n\n")

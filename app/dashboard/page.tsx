@@ -116,7 +116,7 @@ export default async function DashboardPage() {
 
                   <StatRow
                     label="Connected Repositories"
-                    sub="Repositories indexed by codeSentinel"
+                    sub="Repositories connected to codeSentinel"
                     value={stats.connectedRepositories}
                   />
                   <StatRow

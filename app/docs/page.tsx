@@ -4,6 +4,7 @@ import { Logo } from "@/components/brand/logo"
 import { DocsSidebar } from "@/components/docs/docs-sidebar"
 import { DocsContent } from "@/components/docs/docs-content"
 import { AppBackground } from "@/components/layout/app-background"
+import { env } from "@/lib/env"
 
 export const metadata: Metadata = {
   title: "Documentation — codeSentinel",
@@ -42,7 +43,7 @@ export default function DocsPage() {
       {/* ── Layout: sidebar + content ────────────────────────────── */}
       <div className="mx-auto flex max-w-6xl gap-12 px-6 py-12 md:px-10">
         <DocsSidebar />
-        <DocsContent />
+        <DocsContent indexingEnabled={env.REPOSITORY_INDEXING_ENABLED === "1"} />
       </div>
 
       {/* ── Footer ───────────────────────────────────────────────── */}

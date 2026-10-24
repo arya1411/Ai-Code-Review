@@ -1,7 +1,7 @@
 "use client"
 
 import { useQuery } from "@tanstack/react-query"
-import { getMonthlyActivity } from "@/module/github/lib/github"
+import { getMonthlyActivity } from "@/module/dashboard"
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts"
 import { Loader2 } from "lucide-react"
 

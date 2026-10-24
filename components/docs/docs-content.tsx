@@ -158,9 +158,15 @@ function TechGrid() {
 /*  Main docs content                                                   */
 /* ------------------------------------------------------------------ */
 
-export function DocsContent() {
+export function DocsContent({ indexingEnabled }: { indexingEnabled: boolean }) {
   return (
     <article className="min-w-0 flex-1 max-w-3xl space-y-0">
+
+      {!indexingEnabled && (
+        <Callout type="note">
+          Current release: pull request reviews use the PR diff. Repository indexing and chat are temporarily paused, so an embedding key is not required. Indexing sections below describe the optional workflow for when it resumes.
+        </Callout>
+      )}
 
       {/* ── INTRODUCTION ─────────────────────────────────────────── */}
       <FadeIn>

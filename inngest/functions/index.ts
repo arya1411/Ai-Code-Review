@@ -1,8 +1,9 @@
 import { inngest } from '../client';
 import prisma from '@/lib/db';
 import { getRepoSnapshot } from '@/module/github/lib/github';
-import { indexCodeBase } from '@/module/ai/lib/rag';
+import { createCodeChunks, embedIndexChunks, generateEmbeddingBatch, replaceCodeBaseIndex } from '@/module/ai/lib/rag';
 import { REPOSITORY_INDEX_TIMEOUT_ERROR } from '@/module/repository/lib/index-status';
+import { env } from '@/lib/env';
 
 export const indexRepo = inngest.createFunction(
   {
@@ -20,12 +21,13 @@ export const indexRepo = inngest.createFunction(
     ],
   },
   async ({ event, step }) => {
+    if (env.REPOSITORY_INDEXING_ENABLED !== "1") return { skipped: true, reason: "Repository indexing is paused" };
     const { owner, repo, userId, commitSha } = event.data;
 
     const repository = await step.run("mark-indexing", async () => {
       const connectedRepository = await prisma.repository.findFirst({
         where: { userId, owner, name: repo },
-        select: { id: true },
+        select: { id: true, updatedAt: true },
       });
 
       if (!connectedRepository) {
@@ -35,12 +37,12 @@ export const indexRepo = inngest.createFunction(
       return prisma.repository.update({
         where: { id: connectedRepository.id },
         data: { indexStatus: "INDEXING", indexError: null },
-        select: { id: true },
+        select: { id: true, updatedAt: true },
       });
     });
 
     try {
-      const indexResult = await step.run("fetch-and-index", async () => {
+      const snapshot = await step.run("fetch-source-snapshot", async () => {
         const account = await prisma.account.findFirst({
           where: {
             userId: userId,
@@ -58,37 +60,33 @@ export const indexRepo = inngest.createFunction(
           throw new Error("No indexable files were found in the repository");
         }
 
-        const result = await indexCodeBase(
-          repository.id,
-          `${userId}:${owner}/${repo}`,
-          snapshot.files,
-        );
-        return {
-          fileCount: snapshot.files.length,
-          commitSha: snapshot.commitSha,
-          ...result,
-        };
+        return snapshot;
       });
 
-      await step.run("mark-ready", async () => {
-        await prisma.repository.update({
-          where: { id: repository.id },
-          data: {
-            indexStatus: "READY",
-            indexedAt: new Date(),
-            indexedCommitSha: indexResult.commitSha,
-            indexError: null,
-          },
-        });
+      // Bound vector replay state as well as source text. Large repositories
+      // are deliberately sampled for the pilot.
+      const chunks = createCodeChunks(snapshot.files).slice(0, 80);
+      if (!chunks.length) throw new Error("No non-empty source files were available for indexing");
+      const embeddings = await embedIndexChunks(chunks, {
+        batch: (id, values) => step.run(id, () => generateEmbeddingBatch(values)),
+        pause: (id) => step.sleep(id, "61s"),
       });
 
-      return { success: true, ...indexResult };
+      const indexResult = await step.run("publish-index", () => replaceCodeBaseIndex(
+        repository.id,
+        `${userId}:${owner}/${repo}`,
+        chunks,
+        embeddings,
+        { startedAt: repository.updatedAt, commitSha: snapshot.commitSha },
+      ));
+
+      return { success: true, fileCount: new Set(chunks.map((chunk) => chunk.path)).size, commitSha: snapshot.commitSha, ...indexResult };
     } catch (error) {
       const message = error instanceof Error ? error.message : "Repository indexing failed";
 
       await step.run("mark-failed", async () => {
-        await prisma.repository.update({
-          where: { id: repository.id },
+        await prisma.repository.updateMany({
+          where: { id: repository.id, updatedAt: new Date(repository.updatedAt), indexStatus: "INDEXING" },
           data: { indexStatus: "FAILED", indexError: message.slice(0, 500) },
         });
       });

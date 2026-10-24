@@ -1,13 +1,17 @@
 "use server"
 
 import {
-    fetchUserContribution, getGithubToken
+    fetchUserContribution, getGithubToken, getMonthlyActivity as fetchGithubMonthlyActivity
 } from "@/module/github/lib/github"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { Octokit } from "octokit"
 import { formatDistanceToNow } from "date-fns"
 import prisma from "@/lib/db"
+
+export async function getMonthlyActivity() {
+    return fetchGithubMonthlyActivity()
+}
 
 
 export async function getContributionStats(){

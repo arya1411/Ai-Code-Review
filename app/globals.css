@@ -4,6 +4,25 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Reserve a consistent offset for page headers below the persistent notice. */
+:root {
+  --prototype-banner-height: 88px;
+}
+
+.prototype-banner {
+  height: var(--prototype-banner-height);
+}
+
+header.sticky.top-0 {
+  top: var(--prototype-banner-height);
+}
+
+@media (min-width: 640px) {
+  :root {
+    --prototype-banner-height: 64px;
+  }
+}
+
 :root {
   --background: #fafafa;
   --foreground: #0a0a0a;

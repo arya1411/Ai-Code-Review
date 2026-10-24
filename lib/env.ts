@@ -8,7 +8,8 @@ const serverEnvSchema = z.object({
   GITHUB_CLIENT_ID: z.string().min(1, "GITHUB_CLIENT_ID is required"),
   GITHUB_CLIENT_SECRET: z.string().min(1, "GITHUB_CLIENT_SECRET is required"),
   GITHUB_WEBHOOK_SECRET: z.string().min(1, "GITHUB_WEBHOOK_SECRET is required"),
-  GOOGLE_GENERATIVE_AI_API_KEY: z.string().min(1, "GOOGLE_GENERATIVE_AI_API_KEY is required"),
+  REPOSITORY_INDEXING_ENABLED: z.enum(["0", "1"]).default("1"),
+  GOOGLE_GENERATIVE_AI_API_KEY: z.string().optional(),
   GROQ_API_KEY: z.string().min(1, "GROQ_API_KEY is required"),
   EMBEDDING_DIMENSIONS: z.coerce.number().refine(
     (value) => value === 768,
@@ -18,6 +19,13 @@ const serverEnvSchema = z.object({
   NEXT_PUBLIC_APP_BASE_URL: z.string().url().optional(),
   INNGEST_DEV: z.enum(["0", "1"]).optional(),
 }).superRefine((values, context) => {
+  if (values.REPOSITORY_INDEXING_ENABLED === "1" && !values.GOOGLE_GENERATIVE_AI_API_KEY?.trim()) {
+    context.addIssue({
+      code: "custom",
+      path: ["GOOGLE_GENERATIVE_AI_API_KEY"],
+      message: "GOOGLE_GENERATIVE_AI_API_KEY is required when repository indexing is enabled",
+    })
+  }
   if (!values.APP_BASE_URL && !values.NEXT_PUBLIC_APP_BASE_URL) {
     context.addIssue({
       code: "custom",

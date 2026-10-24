@@ -3,32 +3,7 @@ import { randomUUID } from "crypto";
 import prisma from "@/lib/db";
 import { inngest } from "@/inngest/client";
 import { env } from "@/lib/env";
-import { isDefaultBranchPush, verifyGitHubWebhookSignature } from "@/lib/github-webhook";
-
-interface GithubRepositoryPayload {
-    id?: number;
-    name?: string;
-    owner?: { login?: string };
-    default_branch?: string;
-}
-
-interface GithubWebhookPayload {
-    action?: string;
-    ref?: string;
-    after?: string;
-    deleted?: boolean;
-    repository?: GithubRepositoryPayload;
-    pull_request?: {
-        id?: number;
-        number?: number;
-        title?: string;
-        html_url?: string;
-        draft?: boolean;
-        user?: { login?: string };
-        head?: { sha?: string };
-        base?: { sha?: string };
-    };
-}
+import { githubWebhookPayloadSchema, isDefaultBranchPush, verifyGitHubWebhookSignature } from "@/lib/github-webhook";
 
 export async function POST(req: NextRequest) {
     try {
@@ -43,7 +18,17 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
         }
 
-        const body = JSON.parse(rawBody) as GithubWebhookPayload;
+        let payload: unknown;
+        try {
+            payload = JSON.parse(rawBody);
+        } catch {
+            return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 });
+        }
+        const parsed = githubWebhookPayloadSchema.safeParse(payload);
+        if (!parsed.success) {
+            return NextResponse.json({ error: "Invalid webhook payload" }, { status: 400 });
+        }
+        const body = parsed.data;
         const event = req.headers.get("x-github-event");
 
         if (event === "ping") {
@@ -51,6 +36,9 @@ export async function POST(req: NextRequest) {
         }
 
         if (event === "push") {
+            if (env.REPOSITORY_INDEXING_ENABLED !== "1") {
+                return NextResponse.json({ message: "Repository indexing is paused; push ignored" }, { status: 202 });
+            }
             const repository = body.repository;
             if (!repository?.id || !repository.name || !repository.owner?.login) {
                 return NextResponse.json({ error: "Invalid repository payload" }, { status: 400 });
@@ -141,11 +129,14 @@ export async function POST(req: NextRequest) {
                         author: pullRequest.user?.login,
                         url: pullRequest.html_url!,
                         baseSha: pullRequest.base?.sha,
-                        status: "QUEUED",
-                        error: null,
                     },
-                    select: { id: true },
+                    select: { id: true, status: true },
                 });
+
+                // Redeliveries must preserve completed/in-flight results. Inngest
+                // deduplicates delivery IDs, so resetting status here could leave
+                // a review permanently queued with no new job to process it.
+                if (review.status === "COMPLETED" || review.status === "ANALYZING") return;
 
                 await inngest.send({
                     id: `${deliveryId}:${connection.id}:review`,

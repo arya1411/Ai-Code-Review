@@ -3,6 +3,7 @@
 import { headers } from "next/headers"
 import { auth } from "@/lib/auth"
 import prisma from "@/lib/db"
+import { env } from "@/lib/env"
 
 const MAX_ANALYZED_REVIEWS = 500
 
@@ -15,6 +16,7 @@ function monthLabel(date: Date) {
 }
 
 export async function getRepositoryHealth() {
+  const indexingEnabled = env.REPOSITORY_INDEXING_ENABLED === "1"
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session?.user) throw new Error("Unauthorized")
 
@@ -153,14 +155,14 @@ export async function getRepositoryHealth() {
         : null,
     }))
     .sort((left, right) => {
-      const leftAttention = (left.averageRisk ?? 0) + left.highFindings * 8 + (left.indexStatus === "FAILED" ? 100 : 0)
-      const rightAttention = (right.averageRisk ?? 0) + right.highFindings * 8 + (right.indexStatus === "FAILED" ? 100 : 0)
+      const leftAttention = (left.averageRisk ?? 0) + left.highFindings * 8 + (indexingEnabled && left.indexStatus === "FAILED" ? 100 : 0)
+      const rightAttention = (right.averageRisk ?? 0) + right.highFindings * 8 + (indexingEnabled && right.indexStatus === "FAILED" ? 100 : 0)
       return rightAttention - leftAttention
     })
 
   const attentionItems = [
     ...repositories
-      .filter((repository) => repository.indexStatus === "FAILED")
+      .filter((repository) => indexingEnabled && repository.indexStatus === "FAILED")
       .map((repository) => ({
         id: `index:${repository.id}`,
         type: "Index failed" as const,

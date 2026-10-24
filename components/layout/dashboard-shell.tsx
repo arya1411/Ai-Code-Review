@@ -3,6 +3,7 @@ import { MobileNav } from "@/components/layout/mobile-nav"
 import { Logo } from "@/components/brand/logo"
 import { Avatar } from "@/components/ui/avatar"
 import Logout from "@/components/ui/logout"
+import Link from "next/link"
 import { cn } from "@/lib/utils"
 
 /**
@@ -38,9 +39,10 @@ export function DashboardShell({
       </div>
 
       {/* Mobile Header - Only visible on small screens */}
-      <header className="flex h-14 items-center justify-between border-b border-neutral-900 bg-black px-6 md:hidden">
+      <header className="flex h-14 items-center justify-between border-b border-neutral-900 bg-black px-4 sm:px-6 md:hidden">
         <Logo href="/dashboard" size="sm" />
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <Link href="/pricing" className="text-xs font-medium text-neutral-400 hover:text-white">Plans</Link>
           <Avatar src={user.image} name={user.name} size="sm" />
           <Logout className="text-sm font-medium text-neutral-400 hover:text-white transition-colors">
             Sign out

@@ -1,4 +1,4 @@
-"use server"
+import "server-only"
 
 import {Octokit} from "octokit"
 import { auth } from "@/lib/auth"
@@ -6,6 +6,7 @@ import prisma from "@/lib/db"
 import { headers } from "next/headers"
 import { env } from "@/lib/env"
 import { isIndexableRepositoryFile, isProbablyBinaryContent } from "@/module/github/lib/repository-files"
+import { boundIndexFiles, MAX_INDEX_SOURCE_CHARACTERS } from "@/module/repository/lib/index-limits"
 
 
 
@@ -284,7 +285,7 @@ export const getRepoSnapshot = async (
     repo: string,
     requestedCommitSha?: string,
 ): Promise<RepositorySnapshot> => {
-    const octokit = new Octokit({ auth: token });
+    const octokit = new Octokit({ auth: token, request: { timeout: 15_000 } });
     try {
         const { data: repoInfo } = await octokit.rest.repos.get({
             owner,
@@ -333,9 +334,15 @@ export const getRepoSnapshot = async (
                     console.error("Error fetching repository file:", result.reason);
                 }
             }
+            // Stop fetching once the bounded source sample is full. Returning
+            // whole large repositories would exceed Inngest's HTTP step state.
+            const bounded = boundIndexFiles(files);
+            if (bounded.reduce((total, file) => total + file.content.length, 0) >= MAX_INDEX_SOURCE_CHARACTERS) {
+                return { files: bounded, commitSha };
+            }
         }
 
-        return { files, commitSha };
+        return { files: boundIndexFiles(files), commitSha };
     } catch (error) {
         console.error("Error getting repository file content:", error);
         throw error;

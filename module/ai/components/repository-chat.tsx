@@ -77,7 +77,7 @@ export function RepositoryChat({ repositories }: { repositories: ChatRepository[
       const result = await askRepository(
         selectedId,
         content,
-        previousMessages.map(({ role, content: messageContent }) => ({ role, content: messageContent })),
+        previousMessages.slice(-8).map(({ role, content: messageContent }) => ({ role, content: messageContent.slice(0, 4_000) })),
       )
 
       if (result.success) {

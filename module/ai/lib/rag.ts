@@ -16,6 +16,46 @@ const EMBEDDING_BATCH_MAX_ITEMS = 100;
 const EMBEDDING_BATCH_INTERVAL_MS = 60_500;
 const EMBEDDING_RATE_LIMIT_RETRIES = 3;
 
+// One bounded provider request. Inngest owns retries and pauses for background
+// indexing; do not sleep or retry for minutes inside a serverless HTTP request.
+export async function generateEmbeddingBatch(values: string[]) {
+    const { embeddings } = await embedMany({
+        model: google.embedding("gemini-embedding-001"),
+        values,
+        maxParallelCalls: 1,
+        maxRetries: 0,
+        abortSignal: AbortSignal.timeout(60_000),
+        providerOptions: {
+            google: {
+                outputDimensionality: env.EMBEDDING_DIMENSIONS,
+                taskType: "RETRIEVAL_DOCUMENT",
+            } satisfies GoogleEmbeddingModelOptions,
+        },
+    });
+    if (embeddings.length !== values.length) throw new Error("Embedding provider returned an incomplete batch");
+    // Validate before a bad result can be memoized as a completed durable step.
+    embeddings.forEach(toVectorLiteral);
+    return embeddings;
+}
+
+export async function embedIndexChunks(
+    chunks: CodeChunk[],
+    workflow: {
+        batch: (id: string, values: string[]) => Promise<number[][]>;
+        pause: (id: string) => Promise<unknown>;
+    },
+) {
+    const batches = createEmbeddingBatches(chunks.map((chunk) => chunk.content));
+    const embeddings: number[][] = [];
+    for (const [index, batch] of batches.entries()) {
+        if (index > 0) await workflow.pause(`embedding-pause-${index}`);
+        const result = await workflow.batch(`embed-batch-${index}`, batch);
+        if (result.length !== batch.length) throw new Error("Embedding provider returned an incomplete batch");
+        embeddings.push(...result);
+    }
+    return embeddings;
+}
+
 export interface CodeChunk {
     path: string;
     chunkIndex: number;
@@ -214,6 +254,16 @@ export async function indexCodeBase(
         chunks.map((chunk) => chunk.content),
         "RETRIEVAL_DOCUMENT",
     );
+    return replaceCodeBaseIndex(repositoryId, repoKey, chunks, embeddings);
+}
+
+export async function replaceCodeBaseIndex(
+    repositoryId: string,
+    repoKey: string,
+    chunks: CodeChunk[],
+    embeddings: number[][],
+    publication?: { startedAt: string; commitSha: string | null },
+) {
     if (embeddings.length !== chunks.length) {
         throw new Error("Embedding provider returned an incomplete batch");
     }
@@ -245,6 +295,32 @@ export async function indexCodeBase(
     const removedPostgresChunks = previousChunks.filter((chunk) => !nextIds.has(chunk.id)).length;
 
     await prisma.$transaction(async (transaction) => {
+        if (publication) {
+            // A second indexing run may start while this run sleeps. Claim
+            // publication atomically so an older run cannot replace its index.
+            const claimed = await transaction.repository.updateMany({
+                where: { id: repositoryId, updatedAt: new Date(publication.startedAt), indexStatus: "INDEXING" },
+                data: {
+                    indexStatus: "READY", indexedAt: new Date(),
+                    indexedCommitSha: publication.commitSha, indexError: null,
+                },
+            });
+            if (claimed.count !== 1) {
+                // A committed transaction may be retried if the HTTP response
+                // was lost. Do not overwrite anything or fail an index that
+                // has already published this immutable source snapshot.
+                const published = await transaction.repository.findFirst({
+                    where: {
+                        id: repositoryId, indexStatus: "READY",
+                        indexedCommitSha: publication.commitSha,
+                        indexedAt: { gte: new Date(publication.startedAt) },
+                    },
+                    select: { id: true },
+                });
+                if (published) return;
+                throw new Error("Index run was superseded or the repository was disconnected");
+            }
+        }
         await transaction.repositoryCodeChunk.deleteMany({ where: { repoKey } });
 
         for (let offset = 0; offset < records.length; offset += VECTOR_INSERT_BATCH_SIZE) {
@@ -269,7 +345,7 @@ export async function indexCodeBase(
                 VALUES ${Prisma.join(values)}
             `);
         }
-    });
+    }, { timeout: 30_000 });
 
     return {
         indexedChunks: records.length,
