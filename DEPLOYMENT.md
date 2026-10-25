@@ -1,97 +1,184 @@
-# Deployment review
+# Deploy codeSentinel to Vercel
 
-Initial deployment review: 2026-10-19. Repository chat and indexing restored on 2026-10-22. The application has not been deployed by this work. Production URLs, GitHub OAuth settings, and Inngest Cloud must be configured before launch.
+Use this guide to recreate the Vercel project using the existing GitHub repository and Neon database. Recreating the hosting project does not require deleting the database or its records.
 
-The restoration passed TypeScript, ESLint, all 16 test cases, and `npm run build -- --webpack`. The existing live synthetic indexing/retrieval smoke test also passed and cleaned up its temporary chunks. Turbopack remains blocked by the local sandbox's port-binding restriction. Authenticated chat and durable indexing still need an end-to-end test on the final deployment with Inngest Cloud.
+Run terminal commands from the folder containing this project's `package.json`.
 
-## Current release: PR reviews and repository chat
+## 1. Push the cleaned code to GitHub
 
-Repository indexing and chat are enabled by default (`REPOSITORY_INDEXING_ENABLED=1`). Provide a Gemini embedding key and Groq key. Setting the flag to `0` preserves a diff-only PR-review mode without embeddings or chat.
+Review the changes, commit the source and documentation changes, and push to the branch you will deploy.
 
-Vercel is the intended hosting target, with Neon PostgreSQL and Inngest Cloud. Background indexing now fetches a bounded source snapshot, embeds quota-sized batches in separate durable steps with 61-second Inngest sleeps, then atomically publishes the index. Existing vectors remain available until successful publication. Overlapping jobs use a publication guard to prevent an older run from replacing newer index state.
+Keep `.env` and `.env.vercel.txt` private. They are excluded from Git. `.env.example` is a template and can be committed. This project uses npm and `package-lock.json`.
 
-Source snapshots include at most 150 files, 36,000 characters per file and 240,000 characters total; indexing uses at most 80 chunks. This deliberately samples large repositories to bound Inngest replay payloads and execution time. The Inngest route declares a 300-second maximum duration; confirm that the selected hosting plan supports it. Full authenticated production smoke testing is still required.
+## 2. Prepare the production environment file
 
-## Verified
+Use the local `.env.vercel.txt` file prepared for this deployment. It contains your credentials and these 13 variables:
 
-- TypeScript, ESLint, tests, and optimized Next.js production build. The final patched build passed with `npm run build -- --webpack`; Turbopack hit an environment port-binding restriction, and downloading Google fonts required network access. The default Turbopack build should be rechecked on the selected host.
-- Public routes `/`, `/login`, `/docs`, and `/terms` return 200 from the production server.
-- Unauthenticated dashboard, repositories, reviews, settings, health, and chat requests redirect to login.
-- The session endpoint responds; unsigned GitHub webhooks return 401.
-- Prisma schema validation and read-only migration status: all seven migrations are applied to the configured database.
-- Live Gemini embeddings return 768 dimensions; Groq chat and structured review generation succeed.
-- Synthetic indexing and pgvector retrieval succeed; temporary chunks are removed by the smoke script.
-- After compatible security updates, `npm audit --omit=dev` reports zero vulnerabilities. This is a point-in-time dependency advisory check, not proof that every code path is secure.
+| Variable | Value or source |
+| --- | --- |
+| `DATABASE_URL` | Production Neon PostgreSQL connection string |
+| `BETTER_AUTH_SECRET` | Stable random auth secret, at least 32 characters |
+| `BETTER_AUTH_URL` | Final production HTTPS origin |
+| `BETTER_AUTH_TRUSTED_ORIGINS` | Same production HTTPS origin |
+| `APP_BASE_URL` | Same production HTTPS origin |
+| `GITHUB_CLIENT_ID` | GitHub OAuth App client ID |
+| `GITHUB_CLIENT_SECRET` | Matching GitHub OAuth App secret |
+| `GITHUB_WEBHOOK_SECRET` | Secret shared with repository webhooks |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | Google key for repository embeddings |
+| `GROQ_API_KEY` | Groq key for chat and PR reviews |
+| `INNGEST_DEV` | `0` |
+| `INNGEST_EVENT_KEY` | Event key from the Inngest production environment |
+| `INNGEST_SIGNING_KEY` | Signing key from that same Inngest environment |
 
-GitHub token, webhook-management, and arbitrary-token source helpers now live in a `server-only` module. The monthly-activity UI calls an authenticated Server Action wrapper. Next.js was patched from 16.3.6 to 16.3.8, compatible transitive fixes were applied, and shadcn was moved to build dependencies. The full dependency audit still reports nine high advisories in development tooling through `braces`; npm offers a breaking downgrade rather than a compatible fix. Do not run those tools against untrusted input.
+The prepared file currently uses `https://ai-code-review-ten-dusky.vercel.app`. If the new project uses a different domain, replace all three URL values. Use the stable production domain, without a path or trailing slash. Do not use a localhost URL, an ngrok URL, or a URL generated for an individual deployment.
 
-## Launch requirements and limits
+No `NEXT_PUBLIC_*` variables, Pinecone key, or embedding-size variable are needed. Embeddings use a fixed 768 dimensions in code. Repository indexing and chat are enabled by default. Only add `REPOSITORY_INDEXING_ENABLED=0` if you deliberately want diff-only PR reviews without indexing or chat.
 
-1. **Replace local configuration.** The checked environment uses localhost auth URLs, an ngrok webhook URL, `INNGEST_DEV=1`, and lacks Inngest production keys. Set the variables below in the hosting provider, then run `npm run deploy:check` with those production values. The check reports variable names without printing secrets.
-2. **Enable repository chat for the pilot.** Set `REPOSITORY_INDEXING_ENABLED=1` and provide `GOOGLE_GENERATIVE_AI_API_KEY`. Re-sync Inngest after deployment and manually re-index existing connections. Index one repository at a time during the pilot: pacing is per run and does not enforce a shared provider quota across all users.
-3. **Finish the authenticated live smoke test.** A browser GitHub login, repository connection, Inngest Cloud execution, signed webhook delivery, PR review publication, and disconnection still need verification on the final HTTPS domain. No PR comments or webhook changes were made during this review.
-4. **Add abuse controls before an unrestricted public launch.** Repeated PR updates and concurrent review jobs can exhaust the shared Groq quota. Chat, indexing, and PR reviews share provider quotas. Add per-user limits and provider-wide rate/concurrency controls before opening signups broadly.
-5. **Handle delayed PR jobs before relying on review history accuracy.** Review jobs fetch the PR's current head, while the database review row is keyed by the triggering head SHA. A newer push before execution can associate findings with an older SHA. Compare the live head with the stored head and skip stale jobs, or review an immutable commit snapshot. Concurrent reviews can also race to replace the shared PR comment.
+## 3. Check the production configuration and database
 
-The current code is suitable for a controlled small-repository pilot once production configuration and the live smoke test pass. The remaining limits above should guide a broader launch.
+With the production import file available locally, run:
 
-## Production environment
-
-Use a final HTTPS origin such as `https://app.yourdomain.com` consistently:
-
-```dotenv
-BETTER_AUTH_URL=https://app.yourdomain.com
-NEXT_PUBLIC_BETTER_AUTH_URL=https://app.yourdomain.com
-APP_BASE_URL=https://app.yourdomain.com
-NEXT_PUBLIC_APP_BASE_URL=https://app.yourdomain.com
-BETTER_AUTH_TRUSTED_ORIGINS=https://app.yourdomain.com
-INNGEST_DEV=0
-REPOSITORY_INDEXING_ENABLED=1
-INNGEST_EVENT_KEY=<from the production Inngest environment>
-INNGEST_SIGNING_KEY=<from the production Inngest environment>
-EMBEDDING_DIMENSIONS=768
+```bash
+npm ci
+DOTENV_CONFIG_PATH=.env.vercel.txt npm run deploy:check
+DOTENV_CONFIG_PATH=.env.vercel.txt npx prisma migrate status
 ```
 
-Also provide `DATABASE_URL`, `BETTER_AUTH_SECRET`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GITHUB_WEBHOOK_SECRET`, and `GROQ_API_KEY`. `GOOGLE_GENERATIVE_AI_API_KEY` is required only when indexing is enabled. Generate independent auth and webhook secrets with `openssl rand -hex 32`. Keep secrets in the provider's environment settings. Use a production PostgreSQL database supporting pgvector and backups; the configured development database passing checks does not establish production database readiness. A separate production GitHub OAuth app avoids changing local callbacks.
+The environment check must pass. The database must support PostgreSQL's `vector` extension.
 
-Set `NEXT_PUBLIC_*` values before building; Next.js embeds them into browser bundles. The CLI configuration check loads `.env` and exported environment variables; it does not automatically load Next.js `.env.production` or `.env.local` files. Export hosting variables, or select a local file with `DOTENV_CONFIG_PATH=/path/to/production.env npm run deploy:check`.
+If migration status shows pending migrations, back up the production database, review the migration SQL, then apply them:
 
-## Deploy to Vercel
+```bash
+DOTENV_CONFIG_PATH=.env.vercel.txt npm run db:deploy
+```
 
-1. Import the GitHub repository in Vercel as a Next.js project.
-2. Configure the production variables listed above, using the final Vercel production domain or a custom domain consistently. Use `REPOSITORY_INDEXING_ENABLED=1` for repository chat.
-3. Use `npm ci` to install, and `npm run build` to build. Keep development dependencies available during the build. If the host reproduces the local Turbopack issue, use `npm run build -- --webpack`.
-4. Run `npm run deploy:check` with the production variables. Back up the production database and apply migrations with `npm run db:deploy` as a controlled release step.
-5. Configure the GitHub OAuth callback, sync `/api/inngest` in Inngest Cloud, and verify signed PR webhook delivery as described below. Confirm `index-repo`, `recover-cancelled-index`, and `review-pull-request` are registered.
-6. Complete the README smoke test on the final domain before opening access.
+An existing database with all migrations applied needs no reset. Do not use `db:push`, `db:migrate`, or migration reset commands against production.
 
-## Alternative: deploy an always-running Node.js service
+## 4. Create the Vercel project
 
-Use a supported Node.js release meeting the README's Node 22+ requirement. This review ran on Node 26.11.1; rerun validation on the host's chosen Node version. Install build dependencies as well as runtime dependencies because Prisma generation, TypeScript, and CSS compilation need them.
+In Vercel, choose **Add New → Project** and import the GitHub repository.
 
-1. Connect the repository to your chosen Node.js host and configure the production environment above. Use a service that stays running; verify its proxy timeout and the Inngest step timeout for your plan. Indexing pauses are durable and do not occupy an HTTP request.
-2. Run the following with the production environment available:
+| Setting | Value |
+| --- | --- |
+| Framework Preset | Next.js |
+| Root Directory | The folder containing `package.json` |
+| Install Command | `npm ci` |
+| Build Command | `npm run build` |
+| Output Directory | Leave the Next.js default |
+| Node.js | A supported version satisfying the project's Node.js 22+ requirement |
 
-   ```bash
-   npm ci
-   npm run deploy:check
-   npm run typecheck
-   npm run lint
-   npm test
-   npm run build
-   ```
+Use `./` as the root if `package.json` is at the repository root. Use `code_review` only if that folder appears inside the imported repository and contains `package.json`.
 
-   The test script currently expects a `.env` file. On a host or CI using injected variables, run the equivalent `node --import tsx --test tests/*.test.ts` instead.
+Import `.env.vercel.txt` into the project's **Production** environment. If the import chooser hides dotfiles, enable hidden files or paste the file contents into Vercel's environment-variable import field. The values are already prepared; do not add duplicate keys.
 
-3. Back up the production database, review pending migrations, and run `npm run db:deploy` once as a release step. Do not run `db:push` or `db:migrate` in production. This review did not apply migrations or change existing application records, apart from temporary synthetic chunks cleaned up by the smoke script.
-4. Start with `npm run start -- --hostname 0.0.0.0`; the hosting provider should supply `PORT`. Configure HTTPS and automatic restarts. This is a dynamic server application and cannot be published as a static export.
-5. Set the production GitHub OAuth homepage to the app origin and callback to `https://app.yourdomain.com/api/auth/callback/github`.
-6. Sync the application in Inngest Cloud using `https://app.yourdomain.com/api/inngest`, with event and signing keys belonging to that same Inngest environment. Confirm indexing, cancellation recovery, and PR-review functions are registered. Allow GitHub and Inngest to reach their endpoints without an interactive hosting login screen.
-7. For existing connections, review and run `npm run webhooks:reconcile` with production configuration. It creates or updates hooks matching the current URL; it does not delete hooks pointing at an old tunnel/domain. Remove old hooks separately after the production delivery is verified. For a fresh production database, connect repositories through the UI instead.
-8. Complete the end-to-end smoke test in README.md. Verify final Inngest runs and both the in-app review and GitHub comment. Watch provider quota errors, failed indexing, and queued reviews during the pilot.
+Keep the production site and its webhook endpoints reachable by GitHub and Inngest. An interactive Vercel login screen must not block their requests.
 
-## Switching modes
+Click **Deploy**. Do not add a local Inngest development-server command to the build or install settings.
 
-To enable repository chat, set `REPOSITORY_INDEXING_ENABLED=1`, provide a Google embedding key, restart/redeploy, and sync the Inngest app. Re-index existing connections manually. To run PR reviews only, set the flag to `0`; existing indexes are retained. The workflow change does not migrate already-running jobs: finish or cancel old indexing runs before deploying, then queue new runs.
+## 5. Confirm the final production domain
 
-References: [Vercel function duration configuration](https://vercel.com/docs/functions/configuring-functions/duration), [Inngest durable steps](https://www.inngest.com/docs/durable-execution/primitives), [Next.js deployment](https://nextjs.org/docs/app/getting-started/deploying).
+After Vercel assigns the project domain, check **Settings → Domains**.
+
+If it differs from the domain in the import file, update these values in **Settings → Environment Variables**, selecting **Production**:
+
+```dotenv
+APP_BASE_URL=https://YOUR-NEW-DOMAIN
+BETTER_AUTH_URL=https://YOUR-NEW-DOMAIN
+BETTER_AUTH_TRUSTED_ORIGINS=https://YOUR-NEW-DOMAIN
+```
+
+Update your private import file to match, then redeploy. Environment changes take effect in new deployments. Complete this step before testing login.
+
+## 6. Configure GitHub OAuth
+
+Open **GitHub → Settings → Developer settings → OAuth Apps → your OAuth App**.
+
+Set the homepage URL to:
+
+```text
+https://YOUR-NEW-DOMAIN
+```
+
+Set the authorization callback URL to:
+
+```text
+https://YOUR-NEW-DOMAIN/api/auth/callback/github
+```
+
+Save the settings. This OAuth App's client ID and secret must match the values in Vercel. If you create a new OAuth App, update both credentials and redeploy.
+
+## 7. Sync Inngest Cloud
+
+In the Inngest dashboard, select the production environment matching your imported keys. Open **Apps → Sync new app** and enter:
+
+```text
+https://YOUR-NEW-DOMAIN/api/inngest
+```
+
+If the app already exists, update its sync URL and resync it.
+
+Confirm these functions are registered:
+
+- `index-repo`
+- `recover-cancelled-index`
+- `review-pull-request`
+
+You do not need to keep a local terminal running. With manual setup, resync after deployments that change the function definitions. The official Vercel integration is an alternative that can manage keys and sync deployments automatically; check its configuration before adding keys twice.
+
+If sync fails, inspect the Inngest error, confirm both keys belong to the selected environment, and check Vercel deployment protection.
+
+## 8. Update existing repository webhooks
+
+New repository connections create their webhooks through the application.
+
+For repositories already connected to the database, update the application's webhook under **GitHub repository → Settings → Webhooks**:
+
+```text
+https://YOUR-NEW-DOMAIN/api/webhooks/github
+```
+
+Use JSON content, subscribe to `push` and `pull_request`, and use the same secret as `GITHUB_WEBHOOK_SECRET`.
+
+Alternatively, with the private import file updated to the final production domain, run:
+
+```bash
+DOTENV_CONFIG_PATH=.env.vercel.txt npm run webhooks:reconcile
+```
+
+This command creates or updates hooks for the configured URL. It does not delete hooks pointing at old domains. Remove obsolete application hooks after confirming delivery to the new URL.
+
+## 9. Test the deployed application
+
+1. Open the stable production URL and sign in with GitHub.
+2. Confirm login reaches the dashboard without a `403` response.
+3. Connect a small test repository, or re-index an existing connection.
+4. Confirm indexing succeeds in Inngest and the repository becomes **Ready**.
+5. Open repository chat and verify an answer includes relevant file citations.
+6. Open or update a non-draft pull request in the connected repository.
+7. Confirm GitHub delivers the webhook successfully and Inngest completes the review.
+8. Confirm the review appears in the application and as a GitHub PR comment.
+
+For the pilot, index one repository at a time and monitor Google/Groq quotas. Large repositories are sampled; indexing is bounded rather than a complete copy of every file. See README.md for implementation limits.
+
+## 10. Diagnose failures before changing configuration
+
+| Symptom | Check |
+| --- | --- |
+| Sign-in returns `403` | Exact domain in auth URL, trusted origins, and GitHub callback; inspect the response body |
+| GitHub reports callback mismatch | OAuth App callback URL and the matching client credentials |
+| Inngest sync fails | Endpoint reachability, deployment protection, and production signing key |
+| Reviews stay queued | Inngest sync, event key, registered functions, and failed runs |
+| Indexing fails | Google key, quotas, migration status, and pgvector support |
+| Build fails | First actionable error in Vercel's build log |
+
+The last local checks passed all 20 tests, TypeScript, ESLint, and production environment validation. The local Next.js build stopped because its TypeScript subprocess returned empty output for `--showConfig`; the production build and authenticated production flow remain unverified.
+
+If Vercel reports a Turbopack-specific failure, try `npm run build -- --webpack`. This is a fallback for that specific error, not a fix for missing environment variables or unrelated build failures.
+
+## References
+
+- [Vercel build configuration](https://vercel.com/docs/builds/configure-a-build)
+- [Vercel environment variables](https://vercel.com/docs/environment-variables)
+- [Better Auth GitHub setup](https://better-auth.com/docs/authentication/github)
+- [Inngest apps and syncs](https://www.inngest.com/docs/platform-and-operations/apps-and-syncs)
+- [Inngest deployment on Vercel](https://www.inngest.com/docs/durable-execution/deploying-functions/platforms/vercel)

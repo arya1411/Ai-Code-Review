@@ -4,7 +4,7 @@ Repository-aware AI review and codebase chat for GitHub repositories.
 
 **Repository chat and indexing are enabled by default** (`REPOSITORY_INDEXING_ENABLED=1`). Connect a repository to build its source index, ask questions with file citations, and receive repository-aware PR reviews. A Gemini embedding key and Groq key are required. Set the flag to `0` for diff-only PR reviews without embeddings or chat.
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for the deployment review, remaining launch requirements, and production setup.
+Follow [DEPLOYMENT.md](DEPLOYMENT.md) for the step-by-step Vercel deployment guide.
 
 ## MVP capabilities
 
@@ -60,20 +60,17 @@ Copy `.env.example` to `.env` and provide real values. Server configuration is v
 | `DATABASE_URL` | PostgreSQL connection string |
 | `BETTER_AUTH_SECRET` | Better Auth signing secret |
 | `BETTER_AUTH_URL` | Server-side application/auth URL |
-| `NEXT_PUBLIC_BETTER_AUTH_URL` | Browser-visible auth URL |
 | `BETTER_AUTH_TRUSTED_ORIGINS` | Comma-separated allowed origins |
 | `GITHUB_CLIENT_ID` | GitHub OAuth client ID |
 | `GITHUB_CLIENT_SECRET` | GitHub OAuth client secret |
 | `GITHUB_WEBHOOK_SECRET` | HMAC secret shared by installed webhooks |
 | `APP_BASE_URL` | Public base URL used for webhook creation |
-| `NEXT_PUBLIC_APP_BASE_URL` | Fallback public base URL |
 | `REPOSITORY_INDEXING_ENABLED` | Defaults to `1`; set to `0` for diff-only PR reviews without indexing or chat |
 | `GOOGLE_GENERATIVE_AI_API_KEY` | Required only when indexing is enabled |
 | `GROQ_API_KEY` | Groq key for repository chat and pull-request reviews |
-| `EMBEDDING_DIMENSIONS` | Optional; must remain `768` to match the pgvector column |
 | `INNGEST_DEV` | Set to `1` when using the local Inngest dev server |
 
-Production Inngest signing/event keys are consumed by the Inngest SDK using its standard environment variables.
+Production also requires `INNGEST_DEV=0`, `INNGEST_EVENT_KEY`, and `INNGEST_SIGNING_KEY`. The SDK consumes the event and signing keys directly. Browser auth uses the current website origin; no public environment variables are required. Embeddings use a fixed 768 dimensions to match PostgreSQL.
 
 ## Local setup
 

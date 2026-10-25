@@ -7,14 +7,12 @@ const production = {
   BETTER_AUTH_SECRET: "a".repeat(32),
   GITHUB_WEBHOOK_SECRET: "b".repeat(32),
   BETTER_AUTH_URL: "https://app.codesentinel.com",
-  NEXT_PUBLIC_BETTER_AUTH_URL: "https://app.codesentinel.com",
   APP_BASE_URL: "https://app.codesentinel.com",
   BETTER_AUTH_TRUSTED_ORIGINS: "https://app.codesentinel.com",
   GITHUB_CLIENT_ID: "github-id",
   GITHUB_CLIENT_SECRET: "github-secret",
   GOOGLE_GENERATIVE_AI_API_KEY: "google-key",
   GROQ_API_KEY: "groq-key",
-  REPOSITORY_INDEXING_ENABLED: "1",
   INNGEST_DEV: "0",
   INNGEST_EVENT_KEY: "event-key",
   INNGEST_SIGNING_KEY: "signing-key",
@@ -29,12 +27,12 @@ test("deployment configuration accepts matching production origins", () => {
 test("deployment configuration rejects development settings and missing event keys", () => {
   assert.throws(() => validateDeploymentEnv({
     ...production,
-    NEXT_PUBLIC_BETTER_AUTH_URL: "http://localhost:3000",
+    BETTER_AUTH_URL: "http://localhost:3000",
     INNGEST_DEV: "1",
     INNGEST_SIGNING_KEY: "",
     BETTER_AUTH_SECRET: "short",
   }), (error: Error) => {
-    for (const key of ["NEXT_PUBLIC_BETTER_AUTH_URL", "INNGEST_DEV", "INNGEST_SIGNING_KEY", "BETTER_AUTH_SECRET"]) {
+    for (const key of ["BETTER_AUTH_URL", "INNGEST_DEV", "INNGEST_SIGNING_KEY", "BETTER_AUTH_SECRET"]) {
       assert.match(error.message, new RegExp(key))
     }
     return true

@@ -12,6 +12,7 @@ coverage/
 # environment files
 .env*
 !.env.example
+/arya.txt
 
 # logs
 npm-debug.log*

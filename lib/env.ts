@@ -11,12 +11,7 @@ const serverEnvSchema = z.object({
   REPOSITORY_INDEXING_ENABLED: z.enum(["0", "1"]).default("1"),
   GOOGLE_GENERATIVE_AI_API_KEY: z.string().optional(),
   GROQ_API_KEY: z.string().min(1, "GROQ_API_KEY is required"),
-  EMBEDDING_DIMENSIONS: z.coerce.number().refine(
-    (value) => value === 768,
-    "EMBEDDING_DIMENSIONS must be 768 for the PostgreSQL vector column",
-  ).default(768),
-  APP_BASE_URL: z.string().url().optional(),
-  NEXT_PUBLIC_APP_BASE_URL: z.string().url().optional(),
+  APP_BASE_URL: z.string().url("APP_BASE_URL must be a URL"),
   INNGEST_DEV: z.enum(["0", "1"]).optional(),
 }).superRefine((values, context) => {
   if (values.REPOSITORY_INDEXING_ENABLED === "1" && !values.GOOGLE_GENERATIVE_AI_API_KEY?.trim()) {
@@ -24,13 +19,6 @@ const serverEnvSchema = z.object({
       code: "custom",
       path: ["GOOGLE_GENERATIVE_AI_API_KEY"],
       message: "GOOGLE_GENERATIVE_AI_API_KEY is required when repository indexing is enabled",
-    })
-  }
-  if (!values.APP_BASE_URL && !values.NEXT_PUBLIC_APP_BASE_URL) {
-    context.addIssue({
-      code: "custom",
-      path: ["APP_BASE_URL"],
-      message: "APP_BASE_URL or NEXT_PUBLIC_APP_BASE_URL is required",
     })
   }
 })

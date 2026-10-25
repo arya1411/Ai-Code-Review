@@ -7,11 +7,11 @@ type PrismaClientInstance = typeof import("../lib/db").default;
 const prismaModule = prismaImport as unknown as { default?: PrismaClientInstance };
 const prisma = prismaModule.default ?? (prismaImport as unknown as PrismaClientInstance);
 
-const baseUrl = process.env.APP_BASE_URL ?? process.env.NEXT_PUBLIC_APP_BASE_URL;
+const baseUrl = process.env.APP_BASE_URL;
 const webhookSecret = process.env.GITHUB_WEBHOOK_SECRET;
 
 if (!baseUrl) {
-  throw new Error("APP_BASE_URL or NEXT_PUBLIC_APP_BASE_URL must be configured");
+  throw new Error("APP_BASE_URL must be configured");
 }
 
 if (!webhookSecret) {

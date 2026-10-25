@@ -19,7 +19,7 @@ const validEnvironment = {
   GITHUB_WEBHOOK_SECRET: "webhook-secret",
   GOOGLE_GENERATIVE_AI_API_KEY: "google-key",
   GROQ_API_KEY: "groq-key",
-  NEXT_PUBLIC_APP_BASE_URL: "http://localhost:3000",
+  APP_BASE_URL: "http://localhost:3000",
   REPOSITORY_INDEXING_ENABLED: "0",
 } satisfies Record<string, string | undefined>
 
@@ -28,14 +28,13 @@ test("environment validation reports missing required configuration", () => {
     () => parseServerEnv({}),
     /Invalid server environment: DATABASE_URL/,
   )
-  assert.equal(parseServerEnv(validEnvironment).EMBEDDING_DIMENSIONS, 768)
   assert.throws(
     () => parseServerEnv({ ...validEnvironment, GROQ_API_KEY: undefined }),
     /GROQ_API_KEY/,
   )
   assert.throws(
-    () => parseServerEnv({ ...validEnvironment, EMBEDDING_DIMENSIONS: "1536" }),
-    /EMBEDDING_DIMENSIONS must be 768/,
+    () => parseServerEnv({ ...validEnvironment, APP_BASE_URL: undefined }),
+    /APP_BASE_URL/,
   )
 })
 

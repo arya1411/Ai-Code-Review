@@ -1,4 +1,5 @@
 import "dotenv/config"
+import { EMBEDDING_DIMENSIONS } from "../lib/embedding-config"
 
 import { google, type GoogleEmbeddingModelOptions } from "@ai-sdk/google"
 import { groq } from "@ai-sdk/groq"
@@ -7,7 +8,7 @@ import { reviewOutputSchema } from "../module/ai/lib/review-output"
 
 const googleApiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY
 const groqApiKey = process.env.GROQ_API_KEY
-const embeddingDimensions = Number(process.env.EMBEDDING_DIMENSIONS ?? 768)
+
 
 if (!googleApiKey) {
   throw new Error("A Google Generative AI API key is required")
@@ -25,7 +26,7 @@ try {
     value: "codeSentinel provider connectivity check",
     providerOptions: {
       google: {
-        outputDimensionality: embeddingDimensions,
+        outputDimensionality: EMBEDDING_DIMENSIONS,
         taskType: "SEMANTIC_SIMILARITY",
       } satisfies GoogleEmbeddingModelOptions,
     },

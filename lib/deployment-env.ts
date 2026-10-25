@@ -4,14 +4,12 @@ import { parseServerEnv } from "./env"
 export function validateDeploymentEnv(input: Record<string, string | undefined>) {
   const env = parseServerEnv(input)
   const issues: string[] = []
-  const appUrl = env.APP_BASE_URL ?? env.NEXT_PUBLIC_APP_BASE_URL!
+  const appUrl = env.APP_BASE_URL
   const origin = new URL(appUrl).origin
 
   for (const [key, value] of Object.entries({
     APP_BASE_URL: appUrl,
     BETTER_AUTH_URL: env.BETTER_AUTH_URL,
-    NEXT_PUBLIC_BETTER_AUTH_URL: input.NEXT_PUBLIC_BETTER_AUTH_URL,
-    ...(env.NEXT_PUBLIC_APP_BASE_URL ? { NEXT_PUBLIC_APP_BASE_URL: env.NEXT_PUBLIC_APP_BASE_URL } : {}),
   })) {
     try {
       const url = new URL(value ?? "")

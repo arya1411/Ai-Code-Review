@@ -2,7 +2,7 @@ import { embed, embedMany } from "ai";
 import { google, type GoogleEmbeddingModelOptions } from "@ai-sdk/google";
 import prisma from "@/lib/db";
 import { Prisma } from "@/lib/generated/prisma/client";
-import { env } from "@/lib/env";
+import { EMBEDDING_DIMENSIONS } from "@/lib/embedding-config";
 
 const CHUNK_SIZE = 6_000;
 const CHUNK_OVERLAP = 500;
@@ -27,7 +27,7 @@ export async function generateEmbeddingBatch(values: string[]) {
         abortSignal: AbortSignal.timeout(60_000),
         providerOptions: {
             google: {
-                outputDimensionality: env.EMBEDDING_DIMENSIONS,
+                outputDimensionality: EMBEDDING_DIMENSIONS,
                 taskType: "RETRIEVAL_DOCUMENT",
             } satisfies GoogleEmbeddingModelOptions,
         },
@@ -120,10 +120,10 @@ export async function deleteCodeBaseIndex(repoId: string) {
 
 function toVectorLiteral(values: number[]) {
     if (
-        values.length !== env.EMBEDDING_DIMENSIONS
+        values.length !== EMBEDDING_DIMENSIONS
         || values.some((value) => !Number.isFinite(value))
     ) {
-        throw new Error(`Expected a ${env.EMBEDDING_DIMENSIONS}-dimension finite embedding`);
+        throw new Error(`Expected a ${EMBEDDING_DIMENSIONS}-dimension finite embedding`);
     }
 
     return `[${values.join(",")}]`;
@@ -138,7 +138,7 @@ export async function generateEmbedding(
         value: text,
         providerOptions: {
             google: {
-                outputDimensionality: env.EMBEDDING_DIMENSIONS,
+                outputDimensionality: EMBEDDING_DIMENSIONS,
                 taskType,
             } satisfies GoogleEmbeddingModelOptions,
         },
@@ -172,7 +172,7 @@ async function generateEmbeddings(
                     maxRetries: 3,
                     providerOptions: {
                         google: {
-                            outputDimensionality: env.EMBEDDING_DIMENSIONS,
+                            outputDimensionality: EMBEDDING_DIMENSIONS,
                             taskType,
                         } satisfies GoogleEmbeddingModelOptions,
                     },

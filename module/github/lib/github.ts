@@ -181,7 +181,7 @@ export async function getMonthlyActivity(){
 
 
 const getWebhookUrl = () => {
-    const baseUrl = env.APP_BASE_URL ?? env.NEXT_PUBLIC_APP_BASE_URL!;
+    const baseUrl = env.APP_BASE_URL;
 
     return `${baseUrl.replace(/\/$/, "")}/api/webhooks/github`;
 }
