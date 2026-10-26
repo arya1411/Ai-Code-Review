@@ -50,12 +50,12 @@ function rupees(value: number) {
   return `₹${value.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`
 }
 
-export function Pricing() {
+export function Pricing({ isAuthenticated = true }: { isAuthenticated?: boolean }) {
   const [yearly, setYearly] = useState(false)
 
   return (
     <div className="flex min-w-0 flex-col text-white">
-      <nav aria-label="Workspace navigation" className="flex h-10 shrink-0 items-center gap-6 overflow-x-auto border-b border-neutral-900 px-6">
+      {isAuthenticated && <nav aria-label="Workspace navigation" className="flex h-10 shrink-0 items-center gap-6 overflow-x-auto border-b border-neutral-900 px-6">
         {[
           { label: "Overview", href: "/dashboard" },
           { label: "Reviews", href: "/reviews" },
@@ -66,16 +66,16 @@ export function Pricing() {
             {tab.label}
           </Link>
         ))}
-      </nav>
+      </nav>}
 
       <header className="border-b border-neutral-900 px-6 py-4">
-        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-neutral-600">Workspace / Plans</p>
+        <p className="font-sans text-[11px] uppercase tracking-[0.18em] text-neutral-600">Workspace / Plans</p>
         <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-base font-semibold leading-snug">Plans & Pricing</h1>
             <p className="mt-0.5 text-[11px] text-neutral-500">Choose the review capacity that fits your workflow.</p>
           </div>
-          <span className="rounded-md border border-neutral-800 bg-neutral-950 px-2.5 py-1 font-mono text-[10px] text-neutral-400">INR ₹</span>
+          <span className="rounded-md border border-neutral-800 bg-neutral-950 px-2.5 py-1 font-sans text-[11px] text-neutral-400">INR ₹</span>
         </div>
       </header>
 
@@ -128,7 +128,7 @@ export function Pricing() {
                     </div>
 
                     {free ? (
-                      <Link href="/repositories" className="flex min-h-10 items-center justify-center gap-2 rounded-md border border-neutral-800 bg-neutral-950 px-3 text-xs font-medium text-neutral-300 transition-colors hover:bg-neutral-900 hover:text-white">Connect a repository <ArrowUpRight className="size-3.5" aria-hidden="true" /></Link>
+                      <Link href={isAuthenticated ? "/repositories" : "/login"} className="flex min-h-10 items-center justify-center gap-2 rounded-md border border-neutral-800 bg-neutral-950 px-3 text-xs font-medium text-neutral-300 transition-colors hover:bg-neutral-900 hover:text-white">{isAuthenticated ? "Connect a repository" : "Get started with GitHub"} <ArrowUpRight className="size-3.5" aria-hidden="true" /></Link>
                     ) : (
                       <button type="button" disabled className={`min-h-10 cursor-not-allowed rounded-md border px-3 text-xs font-medium ${featured ? "border-neutral-700 bg-neutral-200 text-neutral-700" : "border-neutral-800 bg-neutral-900/50 text-neutral-500"}`}>{plan.name} — Coming soon</button>
                     )}

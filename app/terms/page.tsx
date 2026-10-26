@@ -39,9 +39,9 @@ function LegalSection({
   children: React.ReactNode
 }) {
   return (
-    <section id={id} className="scroll-mt-28 border-t border-white/10 py-10 first:border-t-0 first:pt-0 sm:py-12">
+    <section id={id} className="border-t border-white/10 py-10 first:border-t-0 first:pt-0 sm:py-12">
       <div className="grid gap-5 sm:grid-cols-[64px_1fr] sm:gap-8">
-        <span className="font-mono text-[10px] tracking-[0.12em] text-[#d7c2a4]">/{number}</span>
+        <span className="font-sans text-[11px] tracking-[0.12em] text-[#d7c2a4]">/{number}</span>
         <div>
           <h2 className="text-2xl font-medium tracking-[-0.03em] text-white sm:text-3xl">{title}</h2>
           <div className="mt-6 space-y-5 text-base leading-8 text-white/58 sm:text-lg sm:leading-9">{children}</div>
@@ -59,7 +59,7 @@ export default function TermsPage() {
           <Logo href="/" size="md" />
           <Link
             href="/"
-            className="group flex items-center gap-2 font-mono text-xs tracking-[0.08em] text-white/45 transition-colors hover:text-white"
+            className="group flex items-center gap-2 font-sans text-xs tracking-[0.08em] text-white/45 transition-colors hover:text-white"
           >
             <ArrowLeft className="size-3 transition-transform group-hover:-translate-x-1" />
             BACK HOME
@@ -67,11 +67,11 @@ export default function TermsPage() {
         </div>
       </header>
 
-      <main>
+      <main id="main-content" tabIndex={-1}>
         <section className="border-b border-white/10">
           <div className="mx-auto grid max-w-6xl gap-12 px-6 py-16 lg:grid-cols-[1fr_320px] lg:px-8 lg:py-24">
             <div>
-              <div className="flex items-center gap-3 font-mono text-[10px] tracking-[0.16em] text-[#d7c2a4]">
+              <div className="flex items-center gap-3 font-sans text-[11px] tracking-[0.16em] text-[#d7c2a4]">
                 <FileText className="size-4" strokeWidth={1.5} />
                 LEGAL / TERMS
               </div>
@@ -87,9 +87,9 @@ export default function TermsPage() {
             <div className="self-end border border-white/10 bg-[#0b0b0b] p-6">
               <div className="flex items-center gap-3 text-white/65">
                 <Scale className="size-4 text-[#d7c2a4]" strokeWidth={1.5} />
-                <span className="font-mono text-xs tracking-[0.12em]">DOCUMENT STATUS</span>
+                <span className="font-sans text-xs tracking-[0.12em]">DOCUMENT STATUS</span>
               </div>
-              <dl className="mt-6 space-y-4 border-t border-white/10 pt-5 font-mono text-xs">
+              <dl className="mt-6 space-y-4 border-t border-white/10 pt-5 font-sans text-xs">
                 <div className="flex justify-between gap-4">
                   <dt className="text-white/30">EFFECTIVE</dt>
                   <dd className="text-white/65">OCT 07, 2026</dd>
@@ -105,7 +105,7 @@ export default function TermsPage() {
 
         <div className="mx-auto grid max-w-6xl gap-12 px-6 py-14 lg:grid-cols-[260px_1fr] lg:px-8 lg:py-20">
           <aside className="hidden lg:sticky lg:top-28 lg:block lg:h-fit">
-            <p className="font-mono text-xs tracking-[0.16em] text-white/35">ON THIS PAGE</p>
+            <p className="font-sans text-xs tracking-[0.16em] text-white/35">ON THIS PAGE</p>
             <nav aria-label="Terms sections" className="mt-6 border-l border-white/10">
               {sections.map((section) => (
                 <a
@@ -243,7 +243,7 @@ export default function TermsPage() {
             </LegalSection>
 
             <div className="mt-4 flex justify-end">
-              <a href="#top" className="inline-flex items-center gap-2 font-mono text-xs tracking-[0.08em] text-white/45 transition-colors hover:text-white">
+              <a href="#top" className="inline-flex items-center gap-2 font-sans text-xs tracking-[0.08em] text-white/45 transition-colors hover:text-white">
                 BACK TO TOP <ArrowUp className="size-3" />
               </a>
             </div>
@@ -252,7 +252,7 @@ export default function TermsPage() {
       </main>
 
       <footer className="border-t border-white/10 bg-[#0b0b0b]">
-        <div className="mx-auto flex max-w-6xl flex-col justify-between gap-5 px-6 py-8 font-mono text-xs text-white/40 sm:flex-row sm:items-center lg:px-8">
+        <div className="mx-auto flex max-w-6xl flex-col justify-between gap-5 px-6 py-8 font-sans text-xs text-white/40 sm:flex-row sm:items-center lg:px-8">
           <span>© {new Date().getFullYear()} CODESENTINEL</span>
           <div className="flex gap-6">
             <Link href="/docs" className="transition-colors hover:text-white">DOCS</Link>

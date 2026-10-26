@@ -31,7 +31,7 @@ export default async function ChatPage() {
     <AppBackground>
       <DashboardShell
         user={session.user}
-        className="h-[calc(100vh-3.5rem)] overflow-hidden md:h-screen"
+        className="h-[calc(100dvh-var(--prototype-banner-height)-3.5rem)] overflow-hidden md:h-[calc(100dvh-var(--prototype-banner-height))]"
       >
         <RepositoryChat
           repositories={repositories.map(({ id, name, owner, fullName, url, indexStatus }) => ({

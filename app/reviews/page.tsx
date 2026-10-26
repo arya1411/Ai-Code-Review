@@ -65,7 +65,7 @@ export default async function ReviewsPage() {
           <div className="flex-1 overflow-auto">
             <FadeIn>
               <header className="border-b border-neutral-900 px-6 py-4">
-                <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-neutral-600">
+                <p className="font-sans text-[11px] uppercase tracking-[0.18em] text-neutral-600">
                   Review workspace
                 </p>
                 <div className="mt-1 flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
@@ -75,7 +75,7 @@ export default async function ReviewsPage() {
                       Repository-aware analysis for connected GitHub repositories.
                     </p>
                   </div>
-                  <p className="font-mono text-[10px] uppercase tracking-wider text-neutral-700">
+                  <p className="font-sans text-[11px] uppercase tracking-wider text-neutral-700">
                     {reviews.length} record{reviews.length === 1 ? "" : "s"}
                   </p>
                 </div>
@@ -89,7 +89,7 @@ export default async function ReviewsPage() {
                   { label: "High risk", value: highRiskReviews, detail: `${findings} finding${findings === 1 ? "" : "s"} detected` },
                 ].map((metric) => (
                   <div key={metric.label} className="px-5 py-4">
-                    <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-neutral-600">{metric.label}</p>
+                    <p className="font-sans text-[11px] uppercase tracking-[0.14em] text-neutral-600">{metric.label}</p>
                     <p className="mt-2 text-2xl font-bold tracking-[-0.04em] text-white">{metric.value}</p>
                     <p className="mt-1 text-[10px] text-neutral-700">{metric.detail}</p>
                   </div>
@@ -97,7 +97,7 @@ export default async function ReviewsPage() {
               </section>
 
               <div className="flex items-center justify-between border-b border-neutral-900 px-6 py-3">
-                <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-neutral-600">
+                <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.16em] text-neutral-600">
                   Review activity
                 </p>
                 <span className="text-[10px] text-neutral-700">Newest first</span>
@@ -115,7 +115,7 @@ export default async function ReviewsPage() {
                     </p>
                     <Link
                       href="/repositories"
-                      className="mt-5 inline-flex items-center gap-2 border border-neutral-800 bg-neutral-950 px-3 py-2 font-mono text-[10px] uppercase tracking-wider text-neutral-300 transition hover:border-neutral-700 hover:text-white"
+                      className="mt-5 inline-flex items-center gap-2 border border-neutral-800 bg-neutral-950 px-3 py-2 font-sans text-[11px] uppercase tracking-wider text-neutral-300 transition hover:border-neutral-700 hover:text-white"
                     >
                       <SearchCode className="size-3.5" />
                       Check repositories
@@ -124,7 +124,7 @@ export default async function ReviewsPage() {
                 </div>
               ) : (
                 <div>
-                  <div className="hidden grid-cols-[minmax(0,1fr)_7rem_7rem_5rem] border-b border-neutral-900 bg-neutral-950/40 px-6 py-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-neutral-700 md:grid">
+                  <div className="hidden grid-cols-[minmax(0,1fr)_7rem_7rem_5rem] border-b border-neutral-900 bg-neutral-950/40 px-6 py-2.5 font-sans text-[11px] uppercase tracking-[0.14em] text-neutral-700 md:grid">
                     <span>Pull request</span>
                     <span>Status</span>
                     <span>Risk</span>
@@ -143,7 +143,7 @@ export default async function ReviewsPage() {
                         <article className="border-b border-neutral-900 px-6 py-4 transition-colors hover:bg-neutral-950/40">
                           <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_7rem_7rem_5rem] md:items-start">
                             <div className="min-w-0">
-                              <p className="font-mono text-[10px] text-neutral-600">
+                              <p className="font-sans text-[11px] text-neutral-600">
                                 {review.repository.fullName} / #{review.pullRequestNumber}
                               </p>
                               <a href={review.url} target="_blank" rel="noreferrer" className="mt-1 inline-flex max-w-full items-center gap-1.5 text-xs font-medium text-neutral-200 transition-colors hover:text-white">
@@ -156,20 +156,20 @@ export default async function ReviewsPage() {
                               </p>
                             </div>
 
-                            <span className={`inline-flex w-fit items-center gap-1.5 border px-2 py-1 font-mono text-[9px] uppercase tracking-wider ${status.className}`}>
+                            <span className={`inline-flex w-fit items-center gap-1.5 border px-2 py-1 font-sans text-[10px] uppercase tracking-wider ${status.className}`}>
                               <StatusIcon className={`size-3 ${review.status === "ANALYZING" ? "animate-spin" : ""}`} />
                               {status.label}
                             </span>
 
                             {review.riskLevel ? (
-                              <span className={`inline-flex w-fit border px-2 py-1 font-mono text-[9px] uppercase tracking-wider ${riskClasses[review.riskLevel]}`}>
+                              <span className={`inline-flex w-fit border px-2 py-1 font-sans text-[10px] uppercase tracking-wider ${riskClasses[review.riskLevel]}`}>
                                 {review.riskLevel}{review.riskScore !== null ? ` / ${review.riskScore}` : ""}
                               </span>
                             ) : (
-                              <span className="font-mono text-[10px] text-neutral-800">—</span>
+                              <span className="font-sans text-[11px] text-neutral-800">—</span>
                             )}
 
-                            <span className="font-mono text-xs text-neutral-500 md:text-right">
+                            <span className="font-sans text-xs text-neutral-500 md:text-right">
                               <span className="md:hidden">Findings: </span>{review.findings.length}
                             </span>
                           </div>
@@ -189,17 +189,17 @@ export default async function ReviewsPage() {
                                 </ul>
                               )}
 
-                              {review.error && <p className="mt-3 border border-red-500/20 bg-red-500/5 px-3 py-2 font-mono text-[10px] text-red-400">{review.error}</p>}
+                              {review.error && <p className="mt-3 border border-red-500/20 bg-red-500/5 px-3 py-2 font-sans text-[11px] text-red-400">{review.error}</p>}
 
                               {review.findings.length > 0 && (
                                 <details className="mt-3 border-t border-neutral-900 pt-3">
-                                  <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-wider text-neutral-500 hover:text-white">
+                                  <summary className="cursor-pointer font-sans text-[11px] uppercase tracking-wider text-neutral-500 hover:text-white">
                                     Inspect {review.findings.length} finding{review.findings.length === 1 ? "" : "s"}
                                   </summary>
                                   <div className="mt-3 divide-y divide-neutral-900 border-y border-neutral-900">
                                     {review.findings.map((finding) => (
                                       <div key={finding.id} className="py-3">
-                                        <div className="flex flex-wrap items-center gap-2 font-mono text-[9px] uppercase tracking-wider">
+                                        <div className="flex flex-wrap items-center gap-2 font-sans text-[10px] uppercase tracking-wider">
                                           <span className="text-neutral-300">{finding.severity}</span>
                                           <span className="text-neutral-700">{finding.category}</span>
                                           <code className="normal-case tracking-normal text-violet-400">{finding.filePath}{finding.line ? `:${finding.line}` : ""}</code>

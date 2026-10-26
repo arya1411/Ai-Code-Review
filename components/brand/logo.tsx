@@ -1,3 +1,4 @@
+import Image from "next/image"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 
@@ -7,41 +8,11 @@ interface LogoProps {
   size?: "sm" | "md"
 }
 
-function LogoMark({ className }: { className?: string }) {
+export function LogoMark({ className }: { className?: string }) {
   return (
-    <div
-      className={cn(
-        "brand-mark flex shrink-0 items-center justify-center overflow-hidden border border-[#d7c2a4]/50 bg-[#d7c2a4] text-[#17130f]",
-        className
-      )}
-      aria-hidden="true"
-    >
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        className="size-[72%]"
-      >
-        <path
-          d="M9 5.5 4.75 9.75 9 14M15 5.5l4.25 4.25L15 14"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="square"
-          strokeLinejoin="miter"
-        />
-        <path
-          d="M12 3.75v13.5"
-          stroke="currentColor"
-          strokeWidth="1.4"
-          strokeLinecap="square"
-        />
-        <path
-          d="M8.5 19.25h7"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="square"
-        />
-      </svg>
-    </div>
+    <span className={cn("brand-mark inline-flex shrink-0", className)} aria-hidden="true">
+      <Image src="/brand/logo.svg" alt="" width={64} height={64} className="size-full object-contain" />
+    </span>
   )
 }
 

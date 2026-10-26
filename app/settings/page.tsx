@@ -33,7 +33,7 @@ export default async function SettingsPage() {
           <FadeIn delay={0.08}>
             <section className="mt-12 max-w-2xl mx-auto divide-y divide-neutral-900 border-y border-neutral-900">
               {/* Profile Details */}
-              <div className="flex flex-row items-center justify-between gap-4 py-6">
+              <div className="flex flex-col items-start justify-between gap-4 py-6 sm:flex-row sm:items-center">
                 <div>
                   <h3 className="text-sm font-medium text-white">Profile</h3>
                   <p className="text-sm text-neutral-400 mt-1">Your connected GitHub identity.</p>
@@ -61,7 +61,7 @@ export default async function SettingsPage() {
               </div>
 
               {/* Session Control */}
-              <div className="flex flex-row items-center justify-between gap-4 py-6">
+              <div className="flex flex-col items-start justify-between gap-4 py-6 sm:flex-row sm:items-center">
                 <div>
                   <h3 className="text-sm font-medium text-white">Session</h3>
                   <p className="text-sm text-neutral-400 mt-1">Logout from your current session.</p>

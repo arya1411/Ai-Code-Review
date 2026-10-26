@@ -41,10 +41,10 @@ export default function DocsPage() {
       </header>
 
       {/* ── Layout: sidebar + content ────────────────────────────── */}
-      <div className="mx-auto flex max-w-6xl gap-12 px-6 py-12 md:px-10">
+      <main id="main-content" tabIndex={-1} className="mx-auto flex w-full max-w-6xl gap-12 px-6 py-12 md:px-10">
         <DocsSidebar />
         <DocsContent indexingEnabled={env.REPOSITORY_INDEXING_ENABLED === "1"} />
-      </div>
+      </main>
 
       {/* ── Footer ───────────────────────────────────────────────── */}
       <footer className="border-t border-neutral-900 bg-black">

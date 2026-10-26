@@ -52,8 +52,10 @@ export function DashboardShell({
 
       {/* Main Content Area - Scrollable with padding for mobile nav */}
       <main
+        id="main-content"
+        tabIndex={-1}
         className={cn(
-          "flex-1 overflow-auto pb-20 md:pb-0 bg-black",
+          "min-w-0 flex-1 overflow-auto pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0 bg-black",
           className
         )}
       >

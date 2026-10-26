@@ -55,7 +55,7 @@ export function Sidebar({ user }: SidebarProps) {
       </div>
 
       {/* Navigation Links */}
-      <nav className="flex flex-1 flex-col gap-1 px-3 pt-6">
+      <nav aria-label="Workspace navigation" className="flex flex-1 flex-col gap-1 px-3 pt-6">
         {navItems.map((item) => {
           const isActive =
             item.href === "/dashboard"
@@ -67,6 +67,7 @@ export function Sidebar({ user }: SidebarProps) {
             <Link
               key={item.href}
               href={item.href}
+              aria-current={isActive ? "page" : undefined}
               className={cn(
                 "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                 // Active state styling

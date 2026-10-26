@@ -4,6 +4,8 @@ import { useState } from "react"
 import { toast } from "sonner"
 import { Loader2, Unplug } from "lucide-react"
 import { disconnectRepository } from "@/module/settings"
+import { useRouter } from "next/navigation"
+import { useQueryClient } from "@tanstack/react-query"
 
 interface DisconnectButtonProps {
     repositoryId: string
@@ -12,21 +14,27 @@ interface DisconnectButtonProps {
 
 export function DisconnectButton({ repositoryId, repositoryName }: DisconnectButtonProps) {
     const [isLoading, setIsLoading] = useState(false)
+    const router = useRouter()
+    const queryClient = useQueryClient()
 
     const handleDisconnect = async () => {
         setIsLoading(true)
-        const result = await disconnectRepository(repositoryId)
-        setIsLoading(false)
-
-        if (result.success) {
+        try {
+            const result = await disconnectRepository(repositoryId)
+            if (!result.success) throw new Error("Disconnect failed")
             toast.success(`${repositoryName} disconnected successfully`)
-        } else {
-            toast.error(`Failed to disconnect ${repositoryName}`)
+            await queryClient.invalidateQueries({ queryKey: ["repositories"] })
+            router.refresh()
+        } catch {
+            toast.error(`Failed to disconnect ${repositoryName}. Please try again.`)
+        } finally {
+            setIsLoading(false)
         }
     }
 
     return (
         <button
+            type="button"
             onClick={handleDisconnect}
             disabled={isLoading}
             className="inline-flex items-center gap-1.5 rounded-md border border-neutral-800 bg-neutral-950 px-3 py-1.5 text-xs font-medium text-neutral-300 transition-colors hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-400 disabled:pointer-events-none disabled:opacity-50 cursor-pointer"

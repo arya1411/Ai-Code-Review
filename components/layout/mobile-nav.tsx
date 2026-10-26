@@ -28,14 +28,14 @@ export function MobileNav() {
   const navItems = [
     { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
     { label: "Reviews", href: "/reviews", icon: GitPullRequest },
-    { label: "Repositories", href: "/repositories", icon: FolderGit2 },
+    { label: "Repos", href: "/repositories", icon: FolderGit2 },
     { label: "Talk", href: "/dashboard/chat", icon: MessageSquareCode },
     { label: "Health", href: "/health", icon: Activity },
     { label: "Settings", href: "/settings", icon: Settings },
   ]
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-50 flex items-center justify-around border-t border-neutral-900 bg-black px-2 py-2 md:hidden">
+    <nav aria-label="Workspace navigation" className="fixed inset-x-0 bottom-0 z-50 grid grid-cols-6 border-t border-neutral-900 bg-black px-1 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] md:hidden">
       {navItems.map((item) => {
         const isActive =
           item.href === "/dashboard"
@@ -47,8 +47,9 @@ export function MobileNav() {
           <Link
             key={item.href}
             href={item.href}
+            aria-current={isActive ? "page" : undefined}
             className={cn(
-              "flex flex-col items-center gap-1 rounded-lg px-2 py-1.5 text-[10px] font-medium transition-colors",
+              "flex min-h-11 min-w-0 flex-col items-center justify-center gap-1 rounded-lg px-0.5 py-1.5 text-[10px] font-medium transition-colors",
               // Active state styling
               isActive
                 ? "text-white"
