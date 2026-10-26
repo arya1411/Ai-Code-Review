@@ -18,7 +18,6 @@ import { FadeIn } from "@/components/ui/fade-in"
 /* ------------------------------------------------------------------ */
 
 function SectionHeading({
-  id,
   label,
   title,
   description,
@@ -30,10 +29,10 @@ function SectionHeading({
 }) {
   return (
     <div className="mb-8">
-      <span className="mb-3 inline-block font-mono text-xs font-semibold uppercase tracking-widest text-neutral-500">
+      <span className="mb-3 inline-block font-sans text-xs font-semibold uppercase tracking-widest text-neutral-500">
         {label}
       </span>
-      <h2 id={id} className="scroll-mt-24 text-2xl font-bold tracking-[-0.03em] text-white md:text-3xl">
+      <h2 className="text-2xl font-bold tracking-[-0.03em] text-white md:text-3xl">
         {title}
       </h2>
       {description && (

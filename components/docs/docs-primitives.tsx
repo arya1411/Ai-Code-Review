@@ -64,7 +64,7 @@ export function Step({ number, title, children }: StepProps) {
       {/* Vertical line */}
       <div className="absolute left-[17px] top-8 bottom-0 w-px bg-neutral-800 last:hidden" />
       {/* Number circle */}
-      <div className="absolute left-0 top-0.5 flex size-9 items-center justify-center rounded-full border border-neutral-800 bg-neutral-950 text-sm font-mono font-bold text-white">
+      <div className="absolute left-0 top-0.5 flex size-9 items-center justify-center rounded-full border border-neutral-800 bg-neutral-950 text-sm font-sans font-bold text-white">
         {number}
       </div>
       <h3 className="mb-3 text-base font-semibold text-white pt-1">{title}</h3>
@@ -86,7 +86,7 @@ interface DocTableProps {
 
 export function DocTable({ headers, rows }: DocTableProps) {
   return (
-    <div className="overflow-hidden rounded-lg border border-neutral-800">
+    <div className="overflow-x-auto rounded-lg border border-neutral-800">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-neutral-800 bg-neutral-950">

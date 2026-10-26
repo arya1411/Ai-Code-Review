@@ -60,7 +60,7 @@ export function DocsSidebar() {
   return (
     <aside className="hidden lg:block w-60 shrink-0">
       <div className="sticky top-[calc(var(--prototype-banner-height)+5rem)] overflow-y-auto max-h-[calc(100vh-var(--prototype-banner-height)-6rem)] pr-4 pb-8">
-        <nav className="space-y-6">
+        <nav aria-label="Documentation sections" className="space-y-6">
           {sections.map((section) => (
             <div key={section.title}>
               <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-neutral-500">
@@ -71,6 +71,7 @@ export function DocsSidebar() {
                   <li key={item.id}>
                     <a
                       href={`#${item.id}`}
+                      aria-current={activeId === item.id ? "location" : undefined}
                       onClick={() => setActiveId(item.id)}
                       className={cn(
                         "block py-1 text-sm transition-colors",

@@ -165,7 +165,7 @@ export function RepositoryChat({ repositories }: { repositories: ChatRepository[
         </div>
       </aside>
 
-      <main className="flex min-h-0 flex-1 flex-col overflow-hidden bg-black">
+      <section aria-label="Repository conversation" className="flex min-h-0 flex-1 flex-col overflow-hidden bg-black">
         <div className="flex shrink-0 items-center justify-between border-b border-neutral-900 px-5 py-4 md:px-6">
           <div className="flex min-w-0 items-center gap-2.5">
             <GitBranch className="size-4 shrink-0 text-neutral-600" />
@@ -246,10 +246,11 @@ export function RepositoryChat({ repositories }: { repositories: ChatRepository[
             {error && <p className="mb-2 text-xs text-red-400">{error}</p>}
             <div className="flex items-end gap-3 rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-3 focus-within:border-neutral-700">
               <textarea
+                aria-label="Ask a question about this repository"
                 value={question}
                 onChange={(event) => setQuestion(event.target.value)}
                 onKeyDown={(event) => {
-                  if (event.key === "Enter" && !event.shiftKey) {
+                  if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
                     event.preventDefault()
                     void submitQuestion()
                   }
@@ -267,7 +268,7 @@ export function RepositoryChat({ repositories }: { repositories: ChatRepository[
             <p className="mt-2 text-center text-[10px] text-neutral-700">AI answers can be incomplete. Verify important details in the cited source files.</p>
           </form>
         </div>
-      </main>
+      </section>
     </div>
   )
 }

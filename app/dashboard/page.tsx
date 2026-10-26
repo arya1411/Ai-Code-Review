@@ -75,8 +75,8 @@ export default async function DashboardPage() {
         <div className="flex flex-col h-full">
 
           {/* ── Top tab bar ── */}
-          <div className="shrink-0 flex items-center gap-6 border-b border-neutral-900 bg-black px-6 h-10">
-            {["OVERVIEW", "REVIEWS", "REPOSITORIES", "ACTIVITY"].map((tab, i) => (
+          <div className="shrink-0 flex items-center gap-6 overflow-x-auto border-b border-neutral-900 bg-black px-6 h-10">
+            {["OVERVIEW", "REVIEWS", "REPOSITORIES"].map((tab, i) => (
               <Link
                 key={tab}
                 href={
@@ -85,7 +85,7 @@ export default async function DashboardPage() {
                   i === 2 ? "/repositories" :
                   "/dashboard"
                 }
-                className={`text-[11px] font-semibold tracking-widest transition-colors ${
+                className={`shrink-0 text-[11px] font-semibold tracking-widest transition-colors ${
                   i === 0
                     ? "text-white border-b border-white pb-[1px]"
                     : "text-neutral-600 hover:text-neutral-400"

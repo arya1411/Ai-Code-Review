@@ -17,13 +17,19 @@ function GitHubMark() {
 
 export function LoginUI() {
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
 
   const handleGithubLogin = async () => {
     setIsLoading(true)
+    setError("")
     try {
-      await signIn.social({ provider: "github" })
-    } catch (error) {
-      console.error("Login Error", error)
+      const result = await signIn.social({ provider: "github" })
+      if (result.error) {
+        setError("GitHub sign-in could not start. Please try again.")
+        setIsLoading(false)
+      }
+    } catch {
+      setError("Could not connect to GitHub. Check your connection and try again.")
       setIsLoading(false)
     }
   }
@@ -33,28 +39,28 @@ export function LoginUI() {
       <header className="border-b border-white/10">
         <div className="mx-auto flex h-[72px] max-w-5xl items-center justify-between px-6">
           <Logo href="/" size="md" />
-          <Link href="/" className="group flex items-center gap-2 font-mono text-[10px] tracking-[0.08em] text-white/38 transition-colors hover:text-white">
+          <Link href="/" className="group flex items-center gap-2 font-sans text-[11px] tracking-[0.08em] text-white/60 transition-colors hover:text-white">
             <ArrowLeft className="size-3 transition-transform group-hover:-translate-x-1" /> HOME
           </Link>
         </div>
       </header>
 
-      <main className="mx-auto flex min-h-[calc(100vh-121px)] max-w-5xl items-center px-6 py-12">
+      <main id="main-content" tabIndex={-1} className="mx-auto flex min-h-[calc(100dvh-var(--prototype-banner-height)-121px)] max-w-5xl items-center px-6 py-12">
         <FadeIn className="w-full">
-          <div className="mb-6 flex items-center justify-between font-mono text-[9px] tracking-[0.14em] text-white/25">
+          <div className="mb-6 flex items-center justify-between font-sans text-[10px] tracking-[0.14em] text-white/50">
             <span>ACCOUNT ACCESS</span>
             <span className="flex items-center gap-2"><LockKeyhole className="size-3 text-[#d7c2a4]" /> GITHUB AUTHENTICATION</span>
           </div>
 
-          <div className="auth-panel grid overflow-hidden border border-white/12 bg-[#11110f] lg:grid-cols-[1.08fr_.92fr]">
+          <div className="auth-panel grid overflow-hidden rounded-2xl border border-white/12 bg-[#11110f] lg:grid-cols-[1.08fr_.92fr]">
             <section className="px-6 py-10 sm:px-10 sm:py-12 lg:border-r lg:border-white/10 lg:px-12 lg:py-14">
               <div className="flex size-10 items-center justify-center border border-white/12 bg-white/[0.025] text-[#d7c2a4]">
                 <KeyRound className="size-4" strokeWidth={1.5} />
               </div>
 
-              <p className="mt-9 font-mono text-[9px] tracking-[0.18em] text-[#d7c2a4]">WELCOME BACK</p>
+              <p className="mt-9 font-sans text-[10px] tracking-[0.18em] text-[#d7c2a4]">WELCOME BACK</p>
               <h1 className="mt-4 text-4xl font-medium tracking-[-0.05em] sm:text-5xl">Sign in to your workspace.</h1>
-              <p className="mt-5 max-w-md text-sm leading-6 text-white/42">
+              <p className="mt-5 max-w-md text-sm leading-6 text-white/65">
                 codeSentinel uses GitHub for identity because your workspace is built around the repositories you connect.
               </p>
 
@@ -62,21 +68,22 @@ export function LoginUI() {
                 type="button"
                 onClick={handleGithubLogin}
                 disabled={isLoading}
-                className="login-button group mt-9 flex h-13 w-full max-w-md items-center justify-between bg-[#d7c2a4] px-5 font-mono text-[10px] font-semibold tracking-[0.08em] text-[#17130f] transition-colors hover:bg-[#e4d2b8] disabled:cursor-wait disabled:opacity-60"
+                className="login-button group mt-9 flex h-13 w-full max-w-md items-center justify-between bg-[#d7c2a4] px-5 font-sans text-[11px] font-semibold tracking-[0.08em] text-[#17130f] transition-colors hover:bg-[#e4d2b8] disabled:cursor-wait disabled:opacity-60"
               >
                 <span className="flex items-center gap-3"><GitHubMark />{isLoading ? "CONNECTING TO GITHUB…" : "CONTINUE WITH GITHUB"}</span>
                 <ArrowRight className={`size-4 transition-transform ${isLoading ? "animate-pulse" : "group-hover:translate-x-1"}`} />
               </button>
+              {error && <p role="alert" className="mt-4 max-w-md text-sm text-red-300">{error}</p>}
 
-              <p className="mt-5 max-w-md text-[10px] leading-5 text-white/23">
-                By continuing, you agree to our <Link href="/terms" className="text-white/45 underline decoration-white/20 underline-offset-4 hover:text-white">Terms</Link> and <Link href="#" className="text-white/45 underline decoration-white/20 underline-offset-4 hover:text-white">Privacy Policy</Link>.
+              <p className="mt-5 max-w-md text-[10px] leading-5 text-white/55">
+                By continuing, you agree to our <Link href="/terms" className="text-white/65 underline decoration-white/20 underline-offset-4 hover:text-white">Terms</Link>. Read how repository access works in our <Link href="/docs#github-integration" className="text-white/65 underline decoration-white/20 underline-offset-4 hover:text-white">GitHub integration guide</Link>.
               </p>
             </section>
 
             <aside className="border-t border-white/10 bg-[#0b0b0a] px-6 py-10 sm:px-10 lg:border-t-0 lg:px-9 lg:py-14">
               <div className="flex items-center gap-3">
                 <GitBranch className="size-4 text-white/45" />
-                <h2 className="font-mono text-[10px] tracking-[0.12em] text-white/65">WHAT HAPPENS NEXT</h2>
+                <h2 className="font-sans text-[11px] tracking-[0.12em] text-white/65">WHAT HAPPENS NEXT</h2>
               </div>
 
               <ol className="mt-9 space-y-0">
@@ -87,29 +94,29 @@ export function LoginUI() {
                 ].map(([number, title, detail], index) => (
                   <li key={number} className="relative grid grid-cols-[34px_1fr] gap-4 pb-8 last:pb-0">
                     {index < 2 && <span className="absolute bottom-0 left-[13px] top-7 w-px bg-white/10" />}
-                    <span className="flex size-7 items-center justify-center border border-[#d7c2a4]/25 bg-[#d7c2a4]/5 font-mono text-[9px] text-[#d7c2a4]">{number}</span>
+                    <span className="flex size-7 items-center justify-center border border-[#d7c2a4]/25 bg-[#d7c2a4]/5 font-sans text-[10px] text-[#d7c2a4]">{number}</span>
                     <div>
                       <p className="text-sm text-white/78">{title}</p>
-                      <p className="mt-2 text-xs leading-5 text-white/30">{detail}</p>
+                      <p className="mt-2 text-xs leading-5 text-white/55">{detail}</p>
                     </div>
                   </li>
                 ))}
               </ol>
 
-              <div className="mt-10 border-t border-white/10 pt-6 font-mono text-[9px] tracking-[0.05em] text-white/30">
+              <div className="mt-10 border-t border-white/10 pt-6 font-sans text-[10px] tracking-[0.05em] text-white/55">
                 <p><Check className="mr-2 inline size-3 text-[#7ee2b8]" /> NO PASSWORD STORED</p>
                 <p className="mt-3"><Check className="mr-2 inline size-3 text-[#7ee2b8]" /> ACCESS CAN BE REVOKED</p>
               </div>
             </aside>
           </div>
 
-          <p className="mt-6 text-center font-mono text-[9px] tracking-[0.08em] text-white/18">
-            NEED HELP? <Link href="/docs" className="text-white/38 transition-colors hover:text-white">READ THE CONNECTION GUIDE</Link>
+          <p className="mt-6 text-center font-sans text-[10px] tracking-[0.08em] text-white/50">
+            NEED HELP? <Link href="/docs" className="text-white/60 transition-colors hover:text-white">READ THE CONNECTION GUIDE</Link>
           </p>
         </FadeIn>
       </main>
 
-      <footer className="border-t border-white/10 px-6 py-4 text-center font-mono text-[9px] tracking-[0.12em] text-white/18">
+      <footer className="border-t border-white/10 px-6 py-4 text-center font-sans text-[10px] tracking-[0.12em] text-white/50">
         © {new Date().getFullYear()} CODESENTINEL
       </footer>
     </div>

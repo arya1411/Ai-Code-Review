@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from '@/components/ui/input'
 import { FadeIn } from "@/components/ui/fade-in"
@@ -43,7 +43,7 @@ function RepositoryStatus({ repository, indexingEnabled }: { repository: Reposit
           : { label: "Setup required", dot: "bg-neutral-400" }
 
   return (
-    <span className="inline-flex items-center gap-2 font-mono text-[12px] uppercase tracking-[0.12em] text-neutral-500">
+    <span className="inline-flex items-center gap-2 font-sans text-[12px] uppercase tracking-[0.12em] text-neutral-500">
       <span className={`size-1.5 shrink-0 ${state.dot}`} />
       {state.label}
     </span>
@@ -60,6 +60,10 @@ function IndexingPopup({
   onClose: () => void
 }) {
   const [activityStep, setActivityStep] = useState(0)
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const closeRef = useRef(onClose)
+
+  useEffect(() => { closeRef.current = onClose }, [onClose])
 
   const activities = [
     { icon: GitBranch, code: "FETCH", label: "Collect repository files" },
@@ -76,12 +80,35 @@ function IndexingPopup({
   }, [status, activities.length])
 
   useEffect(() => {
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose()
+    const previousFocus = document.activeElement
+    const dialog = dialogRef.current
+    const focusable = () => Array.from(dialog?.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), a[href], input:not([disabled]), [tabindex="0"]'
+    ) ?? [])
+    focusable()[0]?.focus()
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeRef.current()
+      if (event.key !== "Tab") return
+      const elements = focusable()
+      const first = elements[0]
+      const last = elements.at(-1)
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last?.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first?.focus()
+      }
     }
-    window.addEventListener("keydown", handleEscape)
-    return () => window.removeEventListener("keydown", handleEscape)
-  }, [onClose])
+    window.addEventListener("keydown", handleKeyDown)
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown)
+      document.body.style.overflow = previousOverflow
+      if (previousFocus instanceof HTMLElement && previousFocus.isConnected) previousFocus.focus()
+    }
+  }, [])
 
   const isDone = status === "READY"
   const isFailed = status === "FAILED"
@@ -95,7 +122,8 @@ function IndexingPopup({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4"
+      ref={dialogRef}
+      className="fixed inset-0 z-[80] flex items-center justify-center overflow-y-auto bg-black/80 px-4 py-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby="indexing-title"
@@ -106,7 +134,7 @@ function IndexingPopup({
       <div className="relative w-full max-w-lg overflow-hidden rounded-xl border border-neutral-800 bg-[#0a0a0a] shadow-2xl">
         <div className="flex items-center gap-3 border-b border-neutral-800 px-5 py-4 pr-14">
           <span className={`size-2 rounded-full ${isDone ? "bg-emerald-400" : isFailed ? "bg-red-400" : "animate-pulse bg-amber-400"}`} />
-          <span className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-400">
+          <span className="font-sans text-[12px] font-medium uppercase tracking-[0.18em] text-neutral-400">
             {isDone ? "Index complete" : isFailed ? "Index failed" : status === "CONNECTING" ? "Establishing connection" : "Index job running"}
           </span>
         </div>
@@ -147,8 +175,8 @@ function IndexingPopup({
           {!isDone && !isFailed && (
             <div className="mt-6 overflow-hidden rounded-lg border border-neutral-800 bg-neutral-950">
               <div className="flex items-center justify-between border-b border-neutral-800 px-4 py-2.5">
-                <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-neutral-600">Pipeline</span>
-                <span className="font-mono text-[10px] text-neutral-600">activity, not exact progress</span>
+                <span className="font-sans text-[11px] uppercase tracking-[0.16em] text-neutral-600">Pipeline</span>
+                <span className="font-sans text-[11px] text-neutral-600">activity, not exact progress</span>
               </div>
               <div className="divide-y divide-neutral-900">
                 {activities.map((activity, index) => {
@@ -162,9 +190,9 @@ function IndexingPopup({
                       }`}
                     >
                       {active && <span className="absolute inset-y-0 left-0 w-0.5 bg-amber-400" />}
-                      <span className="w-5 font-mono text-[10px] tabular-nums text-neutral-700">0{index + 1}</span>
+                      <span className="w-5 font-sans text-[11px] tabular-nums text-neutral-700">0{index + 1}</span>
                       <Icon className={`size-3.5 ${active ? "text-amber-400" : "text-neutral-700"}`} />
-                      <span className={`w-10 font-mono text-[10px] font-medium ${active ? "text-amber-400" : "text-neutral-700"}`}>{activity.code}</span>
+                      <span className={`w-10 font-sans text-[11px] font-medium ${active ? "text-amber-400" : "text-neutral-700"}`}>{activity.code}</span>
                       <span className="text-xs">{activity.label}</span>
                       {active && <Loader2 className="ml-auto size-3.5 animate-spin text-neutral-500" />}
                     </div>
@@ -327,6 +355,7 @@ export function RepositoryList({ indexingEnabled }: { indexingEnabled: boolean }
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-neutral-500 pointer-events-none" />
           <Input
             type="text"
+            aria-label="Search repositories by name or description"
             placeholder="Search repositories by name or description..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -359,7 +388,7 @@ export function RepositoryList({ indexingEnabled }: { indexingEnabled: boolean }
           </div>
         ) : (
           <div className="overflow-visible border-y border-neutral-900">
-            <div className="hidden grid-cols-[minmax(0,1fr)_9rem_8rem_10rem] border-b border-neutral-900 bg-neutral-950/40 px-4 py-2.5 font-mono text-[11px] uppercase tracking-[0.16em] text-neutral-700 md:grid">
+            <div className="hidden grid-cols-[minmax(0,1fr)_9rem_8rem_10rem] border-b border-neutral-900 bg-neutral-950/40 px-4 py-2.5 font-sans text-[12px] uppercase tracking-[0.16em] text-neutral-700 md:grid">
               <span>Repository</span>
               <span>Review state</span>
               <span>Source</span>
@@ -387,13 +416,13 @@ export function RepositoryList({ indexingEnabled }: { indexingEnabled: boolean }
                   </div>
 
                   <div className="flex items-center justify-between md:block">
-                    <span className="font-mono text-[11px] uppercase tracking-widest text-neutral-700 md:hidden">State</span>
+                    <span className="font-sans text-[12px] uppercase tracking-widest text-neutral-700 md:hidden">State</span>
                     <RepositoryStatus repository={repo} indexingEnabled={indexingEnabled} />
                   </div>
 
                   <div className="flex items-center justify-between md:block">
-                    <span className="font-mono text-[11px] uppercase tracking-widest text-neutral-700 md:hidden">Source</span>
-                    <div className="flex items-center gap-3 font-mono text-[12px] text-neutral-600">
+                    <span className="font-sans text-[12px] uppercase tracking-widest text-neutral-700 md:hidden">Source</span>
+                    <div className="flex items-center gap-3 font-sans text-[12px] text-neutral-600">
                       {repo.language && <span>{repo.language}</span>}
                       <span className="inline-flex items-center gap-1">
                         <Star className="size-3 text-neutral-700" />
@@ -404,7 +433,7 @@ export function RepositoryList({ indexingEnabled }: { indexingEnabled: boolean }
 
                   <div className="flex justify-end">
                     {!indexingEnabled && repo.isConnected ? (
-                      <span className="inline-flex h-9 items-center gap-2 font-mono text-[12px] uppercase tracking-wide text-emerald-400">
+                      <span className="inline-flex h-9 items-center gap-2 font-sans text-[12px] uppercase tracking-wide text-emerald-400">
                         <Check className="size-3.5" /> Connected
                       </span>
                     ) : indexingEnabled && repo.indexStatus === "READY" ? (
@@ -423,7 +452,7 @@ export function RepositoryList({ indexingEnabled }: { indexingEnabled: boolean }
                               handleConnect(repo)
                             }}
                             disabled={localIndexingId === repo.id}
-                            className="flex w-full items-center gap-2 px-2.5 py-2 text-left font-mono text-[12px] uppercase tracking-wide text-neutral-500 transition hover:bg-neutral-900 hover:text-white disabled:opacity-50"
+                            className="flex w-full items-center gap-2 px-2.5 py-2 text-left font-sans text-[12px] uppercase tracking-wide text-neutral-500 transition hover:bg-neutral-900 hover:text-white disabled:opacity-50"
                           >
                             {localIndexingId === repo.id ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}
                             Re-index
@@ -435,7 +464,7 @@ export function RepositoryList({ indexingEnabled }: { indexingEnabled: boolean }
                         size="sm"
                         onClick={() => handleConnect(repo)}
                         variant="outline"
-                        className="h-9 min-w-32 rounded-none border-neutral-800 bg-transparent font-mono text-[12px] uppercase tracking-wide text-neutral-400 hover:border-neutral-700 hover:bg-neutral-900 hover:text-white"
+                        className="h-9 min-w-32 rounded-none border-neutral-800 bg-transparent font-sans text-[12px] uppercase tracking-wide text-neutral-400 hover:border-neutral-700 hover:bg-neutral-900 hover:text-white"
                         disabled={localConnectingId === repo.id || localIndexingId === repo.id}
                       >
                         {localConnectingId === repo.id || localIndexingId === repo.id ? (
